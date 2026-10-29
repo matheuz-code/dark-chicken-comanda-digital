@@ -1,0 +1,14 @@
+<main class="orders-page">
+  <header><button class="back" (click)="voltar()">←</button><div><p>Operação em tempo real</p><h1>Gestão de pedidos</h1></div><label>Filtrar por status<select [(ngModel)]="statusFiltro" (change)="carregar()"><option *ngFor="let status of statusDisponiveis" [ngValue]="status">{{ status ? statusLabel(status) : 'TODOS' }}</option></select></label></header>
+  <p class="notice success" *ngIf="message">{{ message }}</p><p class="notice error" *ngIf="errorMessage">{{ errorMessage }}</p><p class="loading" *ngIf="loading">Consultando pedidos…</p>
+  <section class="layout" *ngIf="!loading">
+    <div class="orders"><div class="empty" *ngIf="pedidos.length === 0">Nenhum pedido encontrado.</div><button class="order-card" *ngFor="let pedido of pedidos" (click)="abrirDetalhe(pedido.id)" [class.selected]="detalhe?.id === pedido.id"><div><strong>#{{ pedido.id }} · {{ pedido.cliente.nome }}</strong><small>{{ pedido.criadoEm | date:'dd/MM HH:mm' }} · {{ pedido.quantidadeItens }} item(ns)</small></div><div class="right"><b>{{ pedido.valorTotal | currency:'BRL' }}</b><span [attr.data-status]="pedido.status">{{ statusLabel(pedido.status) }}</span></div></button></div>
+    <aside class="detail" *ngIf="detalhe; else selectOrder">
+      <button class="close" (click)="fecharDetalhe()">×</button><p>Pedido #{{ detalhe.id }}</p><h2>{{ detalhe.cliente.nome }}</h2><small>{{ detalhe.cliente.email }} · {{ detalhe.formaPagamento }} · {{ detalhe.statusPagamento }}</small><div class="address"><b>Entrega</b><span>{{ detalhe.enderecoEntrega }}</span></div>
+      <h3>Itens</h3><div class="item" *ngFor="let item of detalhe.itens"><span>{{ item.quantidade }}× {{ item.nomePrato }}</span><b>{{ item.subtotal | currency:'BRL' }}</b></div><div class="total"><span>Total</span><strong>{{ detalhe.valorTotal | currency:'BRL' }}</strong></div>
+      <h3>Linha do tempo</h3><ol><li *ngFor="let evento of detalhe.timeline"><b>{{ statusLabel(evento.status) }}</b><small>{{ evento.registradoEm | date:'dd/MM HH:mm' }} · {{ evento.usuario.nome }}</small></li></ol>
+      <button class="primary" *ngIf="proximoStatus(detalhe.status) as proximo" (click)="avancar()" [disabled]="saving">Avançar para {{ statusLabel(proximo) }}</button>
+      <div class="cancel" *ngIf="detalhe.status !== 'FINALIZADO' && detalhe.status !== 'CANCELADO'"><input [(ngModel)]="motivoCancelamento" placeholder="Motivo do cancelamento" /><button (click)="cancelar()" [disabled]="saving || motivoCancelamento.trim().length < 3">Cancelar pedido</button></div>
+    </aside><ng-template #selectOrder><aside class="detail empty">Selecione um pedido para ver os itens e a linha do tempo.</aside></ng-template>
+  </section>
+</main>

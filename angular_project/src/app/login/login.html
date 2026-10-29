@@ -1,0 +1,110 @@
+<main class="auth">
+  <a class="back" routerLink="/" aria-label="Voltar">
+    <span class="back__icon" aria-hidden="true">←</span>
+    <span class="back__label">Voltar</span>
+  </a>
+
+  <section
+    class="card"
+    [class.is-signup]="mode() === 'signup'"
+    aria-label="Autenticação"
+  >
+    <header class="brand">
+      <span class="brand__icon" aria-hidden="true">🍴</span>
+      <h1 class="brand__title">Dark Kitchen App</h1>
+    </header>
+
+    <nav class="tabs" aria-label="Modo">
+      <button
+        type="button"
+        class="tabs__tab"
+        [class.is-active]="mode() === 'login'"
+        (click)="setMode('login')"
+      >
+        Entrar
+      </button>
+      <button
+        type="button"
+        class="tabs__tab"
+        [class.is-active]="mode() === 'signup'"
+        (click)="setMode('signup')"
+      >
+        Cadastrar
+      </button>
+    </nav>
+
+    <form
+      class="form"
+      [formGroup]="mode() === 'login' ? loginForm : signupForm"
+      (ngSubmit)="onSubmit()"
+      novalidate
+    >
+      <p class="form-error" *ngIf="errorMessage()" role="alert">
+        {{ errorMessage() }}
+      </p>
+
+      <div class="field">
+        <label class="field__label" for="email">Email</label>
+        <input
+          id="email"
+          class="field__control"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          placeholder="seu@email.com"
+          formControlName="email"
+        />
+      </div>
+
+      <div class="field" *ngIf="mode() === 'signup'">
+        <label class="field__label" for="role">Perfil</label>
+        <select id="role" class="field__control" formControlName="role">
+          <option value="client">Cliente</option>
+          <option value="admin">Administrador</option>
+          <option value="kitchen">Cozinha</option>
+          <option value="delivery">Entregador</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="password">Senha</label>
+        <input
+          id="password"
+          class="field__control"
+          type="password"
+          autocomplete="current-password"
+          placeholder="••••••"
+          formControlName="password"
+        />
+      </div>
+
+      <div class="field" *ngIf="mode() === 'signup'">
+        <label class="field__label" for="confirmPassword">Confirmar senha</label>
+        <input
+          id="confirmPassword"
+          class="field__control"
+          type="password"
+          autocomplete="new-password"
+          placeholder="••••••"
+          formControlName="confirmPassword"
+        />
+      </div>
+
+      <button class="submit" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Entrando...' : title() }}
+      </button>
+
+      <p class="helper" *ngIf="mode() === 'login'">
+        Esqueceu sua senha?
+        <a class="helper__link" routerLink="/forgot-password">Recuperar senha</a>
+      </p>
+
+      <p class="helper" *ngIf="mode() === 'signup'">
+        Ao criar uma conta, você concorda com os
+        <a class="helper__link" href="#" (click)="$event.preventDefault()"
+          >Termos de Uso</a
+        >
+      </p>
+    </form>
+  </section>
+</main>

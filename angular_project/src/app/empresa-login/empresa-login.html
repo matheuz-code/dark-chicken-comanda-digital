@@ -1,0 +1,87 @@
+<main class="page">
+  <a class="back-link" routerLink="/">← Voltar para Home</a>
+
+  <section class="card">
+    <header class="header">
+      <h1>Criar Conta</h1>
+      <p>Insira as informacoes da sua empresa</p>
+    </header>
+
+    <form [formGroup]="companyForm" (ngSubmit)="onSubmit()">
+      <label class="logo-upload-container" for="logo">
+        <div class="icon-upload">📷</div>
+        <span>Clique para enviar o Logo da Empresa</span>
+        <small *ngIf="logoName">{{ logoName }}</small>
+      </label>
+      <input id="logo" type="file" accept="image/*" (change)="onLogoSelected($event)" />
+
+      <div class="form-group">
+        <label class="field-label" for="companyName">Nome da Empresa / Completo</label>
+        <input id="companyName" type="text" formControlName="companyName" />
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label class="field-label" for="corporateEmail">Email Corporativo</label>
+          <input id="corporateEmail" type="email" formControlName="corporateEmail" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="phone">Telefone</label>
+          <input id="phone" type="tel" formControlName="phone" />
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label class="field-label" for="password">Senha</label>
+          <input id="password" type="password" formControlName="password" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="confirmPassword">Confirmar Senha</label>
+          <input id="confirmPassword" type="password" formControlName="confirmPassword" />
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label class="field-label" for="cep">CEP</label>
+          <input id="cep" type="text" formControlName="cep" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="state">Estado</label>
+          <select id="state" formControlName="state">
+            <option>São Paulo</option>
+            <option>Rio de Janeiro</option>
+            <option>Minas Gerais</option>
+            <option>Paraná</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label class="field-label" for="street">Rua</label>
+          <input id="street" type="text" formControlName="street" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="number">Numero</label>
+          <input id="number" type="text" formControlName="number" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="city">Cidade</label>
+          <input id="city" type="text" formControlName="city" />
+        </div>
+      </div>
+
+      <label class="checkbox-container" for="terms">
+        <input id="terms" type="checkbox" formControlName="termsAccepted" />
+        <span>Aceito os termos e condicoes</span>
+      </label>
+
+      <button type="submit" class="btn-submit">CRIAR MINHA CONTA</button>
+    </form>
+
+    <div class="login-link">
+      Ja possui cadastro? <a routerLink="/login">Faca login</a>
+    </div>
+  </section>
+</main>

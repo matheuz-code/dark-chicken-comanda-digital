@@ -1,0 +1,207 @@
+<main class="menu">
+  <header class="menu__topbar">
+    <button type="button" class="menu__back" aria-label="Voltar" (click)="goHome()">
+      <span class="menu__back-icon">←</span>
+      <span>Voltar</span>
+    </button>
+
+    <h1 class="menu__title">{{ isManagementView() ? 'Produtos Ativos' : 'Cardápio' }}</h1>
+
+    <div class="menu__actions">
+      <button
+        *ngIf="!isManagementView()"
+        type="button"
+        class="menu__profile"
+        aria-label="Meu perfil"
+        (click)="goToProfile()"
+      >
+        👤 Meu Perfil
+      </button>
+
+      <button
+        *ngIf="!isManagementView()"
+        type="button"
+        class="menu__cart-icon"
+        aria-label="Carrinho"
+        (click)="goToCheckout()"
+      >
+        <span class="menu__cart-glyph">🛒</span>
+        <span class="menu__cart-badge" *ngIf="cartCount > 0">{{ cartCount }}</span>
+      </button>
+    </div>
+  </header>
+
+  <section *ngIf="isManagementView()" class="manage-overview">
+    <div>
+      <h2>Visualização dos dados reais</h2>
+      <p>
+        Esta tela apresenta somente os pratos ativos da API. Inclusão, edição e desativação serão
+        habilitadas com os endpoints administrativos protegidos.
+      </p>
+    </div>
+  </section>
+
+  <section *ngIf="isLoading()" class="menu-state" role="status" aria-live="polite">
+    <span class="menu-state__spinner" aria-hidden="true"></span>
+    <p>Carregando cardápio...</p>
+  </section>
+
+  <section *ngIf="!isLoading() && loadError()" class="menu-state menu-state--error" role="alert">
+    <h2>Cardápio indisponível</h2>
+    <p>{{ loadError() }}</p>
+    <button type="button" class="primary-btn" (click)="retryMenu()">Tentar novamente</button>
+  </section>
+
+  <ng-container *ngIf="!isLoading() && !loadError()">
+    <section class="filters" aria-label="Filtros de categoria">
+      <button
+        *ngFor="let category of categories(); trackBy: trackByCategory"
+        type="button"
+        class="filters__button"
+        [class.is-active]="activeCategory === category.id"
+        [attr.aria-pressed]="activeCategory === category.id"
+        (click)="setCategory(category.id)"
+      >
+        {{ category.label }}
+      </button>
+    </section>
+
+    <section *ngIf="filteredItems.length; else emptyMenu" class="products" aria-label="Lista de produtos">
+      <article class="product-card" *ngFor="let item of filteredItems; trackBy: trackByProduct">
+        <img class="product-card__image" [src]="item.image" [alt]="item.name" />
+        <div class="product-card__body">
+          <h2 class="product-card__title">{{ item.name }}</h2>
+          <span class="product-card__category-chip">{{ item.categoryName }}</span>
+          <p class="product-card__description">{{ item.description }}</p>
+          <div class="product-card__footer">
+            <strong class="product-card__price">{{
+              item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            }}</strong>
+            <div class="product-card__actions">
+              <button
+                type="button"
+                class="secondary-btn"
+                (click)="openDishDetails(item.id)"
+              >
+                Detalhes
+              </button>
+              <button
+                *ngIf="!isManagementView()"
+                type="button"
+                class="product-card__add"
+                (click)="addToCart(item)"
+              >
+                + Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <ng-template #emptyMenu>
+      <section class="menu-state" role="status">
+        <h2>Nenhum prato disponível</h2>
+        <p>Não há pratos ativos nesta categoria no momento.</p>
+      </section>
+    </ng-template>
+  </ng-container>
+
+  <section class="cart" aria-label="Itens selecionados" *ngIf="!isManagementView() && cart.length">
+    <div class="cart__header">
+      <h3>🛒 Seu Carrinho ({{ cartCount }} item{{ cartCount > 1 ? 's' : '' }})</h3>
+    </div>
+
+    <ul class="cart__list">
+      <li class="cart__item" *ngFor="let cartItem of cart; trackBy: trackByCartItem">
+        <img class="cart__item-image" [src]="cartItem.item.image" [alt]="cartItem.item.name" />
+
+        <div class="cart__item-info">
+          <strong>{{ cartItem.item.name }}</strong>
+          <span class="cart__item-price">{{
+            cartItem.item.price * cartItem.quantity
+              | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+          }}</span>
+        </div>
+
+        <div class="cart__actions">
+          <button type="button" (click)="decreaseQuantity(cartItem.item.id)">−</button>
+          <span>{{ cartItem.quantity }}</span>
+          <button type="button" (click)="increaseQuantity(cartItem.item.id)">+</button>
+          <button
+            type="button"
+            class="cart__remove"
+            aria-label="Remover item"
+            title="Remover item"
+            (click)="removeFromCart(cartItem.item.id)"
+          >
+            🗑
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <div class="cart__footer">
+      <strong class="cart__total-label">Total</strong>
+      <strong class="cart__total-value">{{
+        totalPrice | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+      }}</strong>
+    </div>
+
+    <div class="cart__finish-wrap">
+      <button type="button" class="cart__finish" (click)="finalizeOrder()">
+        Finalizar Pedido
+      </button>
+    </div>
+  </section>
+</main>
+
+<div class="dish-dialog__backdrop" *ngIf="detailsOpen()" (click)="closeDetails()">
+  <section
+    class="dish-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="dish-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <button type="button" class="dish-dialog__close" aria-label="Fechar" (click)="closeDetails()">
+      ×
+    </button>
+
+    <div *ngIf="detailsLoading()" class="menu-state" role="status">
+      <span class="menu-state__spinner" aria-hidden="true"></span>
+      <p>Carregando detalhes...</p>
+    </div>
+
+    <div *ngIf="!detailsLoading() && detailsError()" class="menu-state menu-state--error" role="alert">
+      <h2>Detalhes indisponíveis</h2>
+      <p>{{ detailsError() }}</p>
+      <button type="button" class="primary-btn" (click)="retryDetails()">Tentar novamente</button>
+    </div>
+
+    <ng-container *ngIf="!detailsLoading() && selectedDish() as dish">
+      <img
+        class="dish-dialog__image"
+        [src]="dish.fotoUrl || '/images/prato-sem-foto.svg'"
+        [alt]="dish.nome"
+      />
+      <div class="dish-dialog__body">
+        <span class="product-card__category-chip">{{ dish.categoria.nome }}</span>
+        <h2 id="dish-dialog-title">{{ dish.nome }}</h2>
+        <p>{{ dish.descricao || 'Descrição não informada.' }}</p>
+        <p class="dish-dialog__prep">Tempo estimado: {{ dish.tempoPreparoMin }} minutos</p>
+        <div class="dish-dialog__footer">
+          <strong>{{ dish.precoVenda | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <button
+            *ngIf="!isManagementView()"
+            type="button"
+            class="product-card__add"
+            (click)="addDetailedDishToCart(dish)"
+          >
+            + Adicionar ao carrinho
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </section>
+</div>

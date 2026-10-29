@@ -1,0 +1,65 @@
+<main class="admin-page">
+  <header class="page-header">
+    <button type="button" class="back" (click)="voltar()">←</button>
+    <div><p>Comanda Digital</p><h1>Cardápio e custos</h1></div>
+    <button type="button" class="outline" (click)="carregar()">Atualizar</button>
+  </header>
+
+  <nav class="tabs" aria-label="Áreas do catálogo">
+    <button [class.active]="aba === 'categorias'" (click)="selecionarAba('categorias')">Categorias</button>
+    <button [class.active]="aba === 'pratos'" (click)="selecionarAba('pratos')">Pratos</button>
+    <button [class.active]="aba === 'ingredientes'" (click)="selecionarAba('ingredientes')">Ingredientes</button>
+    <button [class.active]="aba === 'fichas'" (click)="selecionarAba('fichas')">Fichas técnicas</button>
+  </nav>
+
+  <p class="notice success" *ngIf="message">{{ message }}</p>
+  <p class="notice error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <p class="loading" *ngIf="loading">Carregando dados reais…</p>
+
+  <section class="workspace" *ngIf="!loading && aba === 'categorias'">
+    <form class="editor" [formGroup]="categoriaForm" (ngSubmit)="salvarCategoria()">
+      <h2>{{ categoriaForm.controls.id.value ? 'Editar' : 'Nova' }} categoria</h2>
+      <label>Nome<input formControlName="nome" /></label>
+      <label>Descrição<textarea formControlName="descricao"></textarea></label>
+      <div class="fields">
+        <label>Ordem<input type="number" formControlName="ordem" /></label>
+        <label>Status<select formControlName="status"><option>ATIVO</option><option>INATIVO</option></select></label>
+      </div>
+      <div class="actions"><button type="submit" [disabled]="saving">Salvar</button><button type="button" class="outline" (click)="novaCategoria()">Limpar</button></div>
+    </form>
+    <div class="list"><h2>Categorias cadastradas</h2><article *ngFor="let item of categorias"><div><strong>{{ item.nome }}</strong><small>Ordem {{ item.ordem }} · {{ item.status }}</small></div><div><button class="link" (click)="editarCategoria(item)">Editar</button><button class="danger" (click)="desativarCategoria(item.id)">Desativar</button></div></article></div>
+  </section>
+
+  <section class="workspace" *ngIf="!loading && aba === 'pratos'">
+    <form class="editor" [formGroup]="pratoForm" (ngSubmit)="salvarPrato()">
+      <h2>{{ pratoForm.controls.id.value ? 'Editar' : 'Novo' }} prato</h2>
+      <label>Categoria<select formControlName="categoriaId"><option [ngValue]="0">Selecione</option><option *ngFor="let categoria of categorias" [ngValue]="categoria.id">{{ categoria.nome }}</option></select></label>
+      <label>Nome<input formControlName="nome" /></label><label>Descrição<textarea formControlName="descricao"></textarea></label><label>URL da foto<input formControlName="fotoUrl" /></label>
+      <div class="fields"><label>Preço<input type="number" step="0.01" formControlName="precoVenda" /></label><label>Preparo (min)<input type="number" formControlName="tempoPreparoMin" /></label><label>Status<select formControlName="status"><option>INATIVO</option><option>ATIVO</option></select></label></div>
+      <small class="hint">RN01: um prato só pode ficar ATIVO depois de possuir ficha técnica completa.</small>
+      <div class="actions"><button type="submit" [disabled]="saving">Salvar</button><button type="button" class="outline" (click)="novoPrato()">Limpar</button></div>
+    </form>
+    <div class="list"><h2>Pratos cadastrados</h2><article *ngFor="let item of pratos"><div><strong>{{ item.nome }}</strong><small>{{ item.categoria.nome }} · {{ item.precoVenda | currency:'BRL' }} · {{ item.status }}</small></div><div><button class="link" (click)="editarPrato(item)">Editar</button><button class="danger" (click)="desativarPrato(item.id)">Desativar</button></div></article></div>
+  </section>
+
+  <section class="workspace" *ngIf="!loading && aba === 'ingredientes'">
+    <form class="editor" [formGroup]="ingredienteForm" (ngSubmit)="salvarIngrediente()">
+      <h2>{{ ingredienteForm.controls.id.value ? 'Editar' : 'Novo' }} ingrediente</h2>
+      <label>Nome<input formControlName="nome" /></label><label>SKU<input formControlName="sku" /></label>
+      <div class="fields"><label>Unidade<select formControlName="unidadePadrao"><option *ngFor="let unidade of unidades">{{ unidade }}</option></select></label><label>Estoque mínimo<input type="number" step="0.0001" formControlName="estoqueMinimo" /></label><label>Custo unitário<input type="number" step="0.0001" formControlName="custoUnitario" /></label></div>
+      <label>Status<select formControlName="status"><option>ATIVO</option><option>INATIVO</option></select></label>
+      <div class="actions"><button type="submit" [disabled]="saving">Salvar</button><button type="button" class="outline" (click)="novoIngrediente()">Limpar</button></div>
+    </form>
+    <div class="list"><h2>Ingredientes cadastrados</h2><article *ngFor="let item of ingredientes"><div><strong>{{ item.nome }}</strong><small>{{ item.sku }} · {{ item.custoUnitario | currency:'BRL' }}/{{ item.unidadePadrao }} · {{ item.status }}</small></div><div><button class="link" (click)="editarIngrediente(item)">Editar</button><button class="danger" (click)="desativarIngrediente(item.id)">Desativar</button></div></article></div>
+  </section>
+
+  <section class="sheet" *ngIf="!loading && aba === 'fichas'">
+    <form [formGroup]="fichaForm" (ngSubmit)="salvarFicha()">
+      <div class="sheet-heading"><div><h2>Ficha técnica</h2><p>Cadastre rendimento, preparo e insumos usados por unidade.</p></div><label>Prato<select formControlName="pratoId" (change)="selecionarFicha(fichaForm.controls.pratoId.value)"><option [ngValue]="0">Selecione</option><option *ngFor="let prato of pratos" [ngValue]="prato.id">{{ prato.nome }}</option></select></label></div>
+      <div class="fields"><label>Rendimento<input type="number" formControlName="rendimento" /></label><label class="wide">Modo de preparo<textarea formControlName="modoPreparo"></textarea></label></div>
+      <div formArrayName="itens" class="items"><div class="item" *ngFor="let item of itensFicha.controls; let i = index" [formGroupName]="i"><select formControlName="ingredienteId"><option [ngValue]="0">Ingrediente</option><option *ngFor="let ingrediente of ingredientes" [ngValue]="ingrediente.id">{{ ingrediente.nome }}</option></select><input type="number" step="0.0001" formControlName="quantidade" aria-label="Quantidade" /><select formControlName="unidade"><option *ngFor="let unidade of unidades">{{ unidade }}</option></select><input type="number" step="0.0001" min="1" formControlName="fatorCorrecao" aria-label="Fator de correção" /><button type="button" class="danger" (click)="removerItemFicha(i)">Remover</button></div></div>
+      <div class="actions"><button type="button" class="outline" (click)="adicionarItemFicha()">Adicionar ingrediente</button><button type="submit" [disabled]="saving">Salvar ficha</button></div>
+    </form>
+    <aside class="cost" *ngIf="fichaAtual"><span>Custo por unidade</span><strong>{{ fichaAtual.custoUnitario | currency:'BRL' }}</strong><span>Food cost</span><strong>{{ fichaAtual.foodCostPercentual | number:'1.2-2' }}%</strong><b [class.warning]="fichaAtual.aviso">{{ fichaAtual.classificacao }}</b><p *ngIf="fichaAtual.aviso">{{ fichaAtual.aviso }}</p></aside>
+  </section>
+</main>

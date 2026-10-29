@@ -1,0 +1,103 @@
+<main class="checkout">
+  <div class="checkout__container">
+    <button type="button" class="checkout__back" (click)="backToCart()">
+      <span aria-hidden="true">←</span>
+      <span>Voltar ao Carrinho</span>
+    </button>
+
+    <section class="checkout__card" *ngIf="items().length; else emptyOrder">
+      <h1 class="checkout__title">Finalizar Pedido</h1>
+
+      <div class="summary">
+        <h2 class="summary__title">Resumo do Pedido</h2>
+
+        <ul class="summary__list">
+          <li class="summary__item" *ngFor="let item of items(); trackBy: trackByItem">
+            <span>{{ item.quantity }}x {{ item.name }}</span>
+            <strong>{{
+              item.price * item.quantity | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            }}</strong>
+          </li>
+        </ul>
+
+        <div class="summary__total">
+          <strong>Total</strong>
+          <strong>{{ total() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+        </div>
+      </div>
+
+      <form class="form" [formGroup]="checkoutForm" (ngSubmit)="confirmOrder()">
+        <label class="field">
+          <span>Nome Completo</span>
+          <input type="text" formControlName="fullName" placeholder="Seu nome" />
+        </label>
+
+        <label class="field">
+          <span>Endereco de Entrega</span>
+          <input type="text" formControlName="address" placeholder="Rua, numero, complemento" />
+        </label>
+
+        <label class="field">
+          <span>Telefone</span>
+          <input
+            type="tel"
+            formControlName="phone"
+            placeholder="11987654321"
+            inputmode="numeric"
+            autocomplete="tel-national"
+            maxlength="11"
+            pattern="[0-9]*"
+            (input)="onPhoneInput($event)"
+          />
+        </label>
+
+        <div class="payment">
+          <p class="payment__label">Forma de Pagamento</p>
+          <div class="payment__options">
+            <button
+              type="button"
+              class="payment__option"
+              [class.is-active]="checkoutForm.value.paymentMethod === 'pix'"
+              (click)="selectPayment('pix')"
+            >
+              <span class="payment__icon">📱</span>
+              <span>PIX</span>
+            </button>
+
+            <button
+              type="button"
+              class="payment__option"
+              [class.is-active]="checkoutForm.value.paymentMethod === 'cartao'"
+              (click)="selectPayment('cartao')"
+            >
+              <span class="payment__icon">💳</span>
+              <span>Cartao</span>
+            </button>
+
+            <button
+              type="button"
+              class="payment__option"
+              [class.is-active]="checkoutForm.value.paymentMethod === 'dinheiro'"
+              (click)="selectPayment('dinheiro')"
+            >
+              <span class="payment__icon">💵</span>
+              <span>Dinheiro</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="confirm" type="submit">
+          Pagar - {{ total() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+        </button>
+      </form>
+    </section>
+
+    <ng-template #emptyOrder>
+      <section class="checkout__card checkout__card--empty">
+        <h1 class="checkout__title">Finalizar Pedido</h1>
+        <p>Seu carrinho esta vazio no momento.</p>
+        <button type="button" class="confirm" (click)="backToCart()">Voltar para o Cardapio</button>
+      </section>
+    </ng-template>
+  </div>
+</main>

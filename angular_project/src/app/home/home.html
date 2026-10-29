@@ -1,0 +1,88 @@
+<main class="container">
+  <header class="header">
+    <div class="logo">
+      <span class="logo__icon" aria-hidden="true">🍴</span>
+      <h1>BomRango</h1>
+    </div>
+    <p class="subtitle">Sistema completo de delivery para cozinha fantasma</p>
+
+    <div class="header-btns">
+      <a class="btn btn-white" routerLink="/login">➜ Entrar / Cadastrar</a>
+      <a class="btn btn-orange" routerLink="/empresa-login">📄 Cadastrar Empresa</a>
+    </div>
+  </header>
+
+  <section class="cards-grid">
+    <article class="card cliente">
+      <div class="icon-circle bg-o">🍴</div>
+      <h2>Area do Cliente</h2>
+      <p>Faca seu pedido, escolha produtos e acompanhe em tempo real</p>
+      <ul>
+        <li><span class="check">✓</span> Cardapio completo interativo</li>
+        <li><span class="check">✓</span> Carrinho de compras inteligente</li>
+        <li><span class="check">✓</span> Multiplas formas de pagamento</li>
+        <li><span class="check">✓</span> Rastreamento do pedido GPS</li>
+      </ul>
+      <a class="btn btn-orange btn-full" routerLink="/cardapio">Acessar como Cliente</a>
+    </article>
+
+    <article class="card cozinha">
+      <div class="icon-circle bg-r">👨‍🍳</div>
+      <h2>Painel da Cozinha</h2>
+      <p>Gerencie pedidos, defina tempo de preparo e controle a producao</p>
+      <ul>
+        <li><span class="check">✓</span> Receber pedidos em tempo real</li>
+        <li><span class="check">✓</span> Definir tempo de preparo</li>
+        <li><span class="check">✓</span> Timer regressivo de producao</li>
+        <li><span class="check">✓</span> Gestao de estoque e produtos</li>
+      </ul>
+      <a class="btn btn-red btn-full" routerLink="/cozinha">Acessar Cozinha</a>
+    </article>
+
+    <article class="card motoboy">
+      <div class="icon-circle bg-b">🚲</div>
+      <h2>Painel do Motoboy</h2>
+      <p>Aceite entregas, navegue ate o cliente e finalize pedidos</p>
+      <ul>
+        <li><span class="check">✓</span> Visualizar pedidos prontos</li>
+        <li><span class="check">✓</span> Aceite de entregas por proximidade</li>
+        <li><span class="check">✓</span> Rotas integradas (Maps/Waze)</li>
+        <li><span class="check">✓</span> Relatorio diario de comissoes</li>
+      </ul>
+      <a class="btn btn-blue btn-full" routerLink="/motoboy">Acessar Motoboy</a>
+    </article>
+
+    <article class="card gestao">
+      <div class="icon-circle bg-p">📊</div>
+      <h2>Dashboard Gestao</h2>
+      <p>Analise performance, KPIs e tome decisoes inteligentes</p>
+      <ul>
+        <li><span class="check">✓</span> KPIs de faturamento em tempo real</li>
+        <li><span class="check">✓</span> Analise detalhada de produtos</li>
+        <li><span class="check">✓</span> Insights e previsoes automaticas</li>
+        <li><span class="check">✓</span> Segmentacao e CRM de clientes</li>
+      </ul>
+      <a class="btn btn-purple btn-full" routerLink="/admin">Acessar Dashboard</a>
+    </article>
+  </section>
+
+  <h2 class="flow-title">Fluxo do Pedido</h2>
+  <section class="flow-bar">
+    <div class="step">
+      <div class="step-num bg-o">1</div>
+      <span>Cliente faz pedido</span>
+    </div>
+    <div class="step">
+      <div class="step-num bg-r">2</div>
+      <span>Cozinha prepara</span>
+    </div>
+    <div class="step">
+      <div class="step-num bg-b">3</div>
+      <span>Motoboy entrega</span>
+    </div>
+    <div class="step">
+      <div class="step-num step-num--done">✓</div>
+      <span>Pedido finalizado</span>
+    </div>
+  </section>
+</main>

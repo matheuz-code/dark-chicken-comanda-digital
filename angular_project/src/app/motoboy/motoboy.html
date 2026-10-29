@@ -1,0 +1,127 @@
+<div class="page">
+  <header class="topbar">
+    <button class="back-btn" (click)="voltar()">
+      <span class="arrow">←</span>
+      <span>Voltar</span>
+    </button>
+
+    <h1 class="title">
+      <span class="title-icon">🚴</span>
+      {{ titulo }}
+    </h1>
+  </header>
+
+  <main class="container">
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input
+        type="text"
+        [(ngModel)]="busca"
+        placeholder="Pesquisar por pedido, cliente ou endereco..."
+      />
+    </div>
+
+    <section class="cards">
+      <div class="card stat-card">
+        <div class="stat-number blue">{{ pedidosDisponiveis().length }}</div>
+        <div class="stat-label">Pedidos Disponiveis</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-number purple">{{ minhasEntregas().length }}</div>
+        <div class="stat-label">Em Rota</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-number green">R$ {{ ganhosHoje().toFixed(2) }}</div>
+        <div class="stat-label">Ganhos Hoje</div>
+      </div>
+    </section>
+
+    <section class="tabs">
+      <button
+        class="tab"
+        [class.active]="abaAtiva === 'disponiveis'"
+        (click)="selecionarAba('disponiveis')"
+      >
+        Disponiveis
+      </button>
+
+      <button
+        class="tab"
+        [class.active]="abaAtiva === 'entregas'"
+        (click)="selecionarAba('entregas')"
+      >
+        Minhas Entregas
+      </button>
+
+      <button
+        class="tab"
+        [class.active]="abaAtiva === 'finalizadas'"
+        (click)="selecionarAba('finalizadas')"
+      >
+        Finalizadas
+      </button>
+    </section>
+
+    <section class="list-card">
+      <ng-container *ngIf="abaAtiva === 'disponiveis'">
+        <div *ngIf="pedidosDisponiveis().length === 0" class="empty-state">
+          <div class="empty-icon">🚴</div>
+          <p>Nenhum pedido disponivel no momento</p>
+        </div>
+
+        <div *ngFor="let pedido of pedidosDisponiveis(); trackBy: trackByPedido" class="pedido-item">
+          <div class="pedido-info">
+            <h3>Pedido #{{ pedido.code }}</h3>
+            <p><strong>Cliente:</strong> {{ pedido.customerName }}</p>
+            <p><strong>Endereco:</strong> {{ pedido.address }}</p>
+            <p><strong>Valor:</strong> R$ {{ pedido.total.toFixed(2) }}</p>
+          </div>
+
+          <button class="action-btn" (click)="aceitarPedido(pedido.code)">
+            Aceitar
+          </button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="abaAtiva === 'entregas'">
+        <div *ngIf="minhasEntregas().length === 0" class="empty-state">
+          <div class="empty-icon">🛵</div>
+          <p>Voce nao possui entregas em rota</p>
+        </div>
+
+        <div *ngFor="let pedido of minhasEntregas(); trackBy: trackByPedido" class="pedido-item">
+          <div class="pedido-info">
+            <h3>Pedido #{{ pedido.code }}</h3>
+            <p><strong>Cliente:</strong> {{ pedido.customerName }}</p>
+            <p><strong>Endereco:</strong> {{ pedido.address }}</p>
+            <p><strong>Valor:</strong> R$ {{ pedido.total.toFixed(2) }}</p>
+          </div>
+
+          <button class="action-btn finish" (click)="finalizarPedido(pedido.code)">
+            Finalizar
+          </button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="abaAtiva === 'finalizadas'">
+        <div *ngIf="finalizadas().length === 0" class="empty-state">
+          <div class="empty-icon">✅</div>
+          <p>Nenhuma entrega finalizada ainda</p>
+        </div>
+
+        <div *ngFor="let pedido of finalizadas(); trackBy: trackByPedido" class="pedido-item finalizado">
+          <div class="pedido-info">
+            <h3>Pedido #{{ pedido.code }}</h3>
+            <p><strong>Cliente:</strong> {{ pedido.customerName }}</p>
+            <p><strong>Endereco:</strong> {{ pedido.address }}</p>
+            <p><strong>Valor:</strong> R$ {{ pedido.total.toFixed(2) }}</p>
+          </div>
+
+          <span class="badge">Concluido</span>
+        </div>
+      </ng-container>
+    </section>
+  </main>
+</div>

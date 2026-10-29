@@ -1,0 +1,138 @@
+<main class="dashboard-shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Comanda Digital</p>
+      <h1>Dashboard gerencial</h1>
+      <p class="subtitle">Indicadores de vendas e custos atualizados com os pedidos de hoje</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="button secondary" type="button" (click)="carregar()" [disabled]="loading">
+        Atualizar
+      </button>
+      <button class="button ghost" type="button" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <section class="content" aria-live="polite">
+    <div class="loading-state" *ngIf="loading">
+      <span class="spinner" aria-hidden="true"></span>
+      <div>
+        <strong>Calculando indicadores</strong>
+        <p>Consultando os pedidos e as fichas técnicas do dia.</p>
+      </div>
+    </div>
+
+    <div class="error-state" *ngIf="!loading && errorMessage" role="alert">
+      <div>
+        <strong>Dashboard indisponível</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <div class="error-actions">
+        <button class="button secondary" type="button" (click)="carregar()">Tentar novamente</button>
+        <button class="button primary" type="button" (click)="navigate('/login')">Ir para o login</button>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!loading && !errorMessage">
+      <div class="period-row">
+        <div>
+          <span class="period-label">Período analisado</span>
+          <strong>{{ kpis.data | date:'dd/MM/yyyy':'UTC' }}</strong>
+        </div>
+        <span class="live-badge"><i></i> Dados reais do sistema</span>
+      </div>
+
+      <section class="kpi-grid" aria-label="Indicadores do dia">
+        <article class="kpi-card revenue">
+          <div class="kpi-heading"><span>Faturamento do dia</span><b>R$</b></div>
+          <strong class="kpi-value">{{ kpis.faturamento | currency:'BRL':'symbol':'1.2-2' }}</strong>
+          <p>Somente pedidos com pagamento confirmado</p>
+        </article>
+
+        <article class="kpi-card orders">
+          <div class="kpi-heading"><span>Pedidos do dia</span><b>#</b></div>
+          <strong class="kpi-value">{{ kpis.totalPedidos }}</strong>
+          <p>Pedidos pagos e não estornados</p>
+        </article>
+
+        <article class="kpi-card ticket">
+          <div class="kpi-heading"><span>Ticket médio</span><b>÷</b></div>
+          <strong class="kpi-value">{{ kpis.ticketMedio | currency:'BRL':'symbol':'1.2-2' }}</strong>
+          <p>Faturamento dividido pelo total de pedidos</p>
+        </article>
+
+        <article [class]="'kpi-card food-cost ' + foodCostClass()">
+          <div class="kpi-heading"><span>Food cost médio</span><b>%</b></div>
+          <strong class="kpi-value">{{ kpis.foodCostMedioPercentual | number:'1.2-2' }}%</strong>
+          <p>Custo estimado: {{ kpis.custoIngredientesEstimado | currency:'BRL':'symbol':'1.2-2' }}</p>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel chart-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Desempenho</p>
+              <h2>Top 5 pratos mais vendidos</h2>
+            </div>
+            <span class="panel-chip">Hoje</span>
+          </div>
+
+          <div class="empty-state" *ngIf="topPratos.length === 0">
+            <strong>Ainda não há vendas hoje</strong>
+            <p>O gráfico será preenchido assim que houver pedidos pagos.</p>
+          </div>
+
+          <div class="chart-container" *ngIf="topPratos.length > 0">
+            <canvas
+              baseChart
+              type="bar"
+              [data]="chartData"
+              [options]="chartOptions"
+              aria-label="Gráfico dos cinco pratos mais vendidos"
+            ></canvas>
+          </div>
+        </article>
+
+        <article class="panel ranking-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Ranking</p>
+              <h2>Receita por prato</h2>
+            </div>
+          </div>
+
+          <ol class="ranking" *ngIf="topPratos.length > 0">
+            <li *ngFor="let prato of topPratos; let index = index">
+              <span class="rank">{{ index + 1 }}</span>
+              <div class="dish-info">
+                <strong>{{ prato.pratoNome }}</strong>
+                <small>{{ prato.quantidadeVendida }} unidade(s)</small>
+              </div>
+              <b>{{ prato.faturamento | currency:'BRL':'symbol':'1.2-2' }}</b>
+            </li>
+          </ol>
+
+          <div class="empty-state compact" *ngIf="topPratos.length === 0">
+            <p>Nenhum prato no ranking.</p>
+          </div>
+        </article>
+      </section>
+
+      <nav class="quick-links" aria-label="Atalhos administrativos">
+        <button type="button" (click)="navigate('/admin/pedidos')">
+          <span>Pedidos</span><small>Acompanhar operação</small>
+        </button>
+        <button type="button" (click)="navigate('/admin/estoque')">
+          <span>Estoque</span><small>Consultar saldos</small>
+        </button>
+        <button type="button" *ngIf="isAdmin()" (click)="navigate('/admin/produtos')">
+          <span>Cardápio</span><small>Gerenciar pratos</small>
+        </button>
+        <button type="button" *ngIf="isAdmin()" (click)="navigate('/admin/clientes')">
+          <span>Usuários</span><small>Gerenciar perfis e acessos</small>
+        </button>
+      </nav>
+    </ng-container>
+  </section>
+</main>

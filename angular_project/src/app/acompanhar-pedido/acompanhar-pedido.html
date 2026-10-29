@@ -1,0 +1,90 @@
+<main class="tracking">
+  <header class="tracking__header">
+    <button type="button" class="tracking__back" (click)="goBack()">
+      <span aria-hidden="true">←</span>
+      <span>Voltar</span>
+    </button>
+    <h1>Acompanhar Pedido</h1>
+    <span class="tracking__spacer"></span>
+  </header>
+
+  <section class="tracking__container" *ngIf="order() as currentOrder; else noOrder">
+    <article class="tracking__card">
+      <div class="tracking__order-top">
+        <strong>Pedido {{ currentOrder.code }}</strong>
+        <span class="tracking__badge">{{ steps[currentOrder.currentStep].label }}</span>
+      </div>
+
+      <div class="tracking__progress">
+        <div class="tracking__progress-bar" [style.width.%]="progressPercent()"></div>
+      </div>
+      <p class="tracking__progress-label">{{ progressText() }}</p>
+
+      <ul class="tracking__steps">
+        <li class="tracking__step" *ngFor="let step of steps; index as i; trackBy: trackByStep">
+          <span class="tracking__step-icon" [class.is-done]="isStepDone(i, currentOrder)">
+            {{ step.icon }}
+          </span>
+          <span class="tracking__step-label" [class.is-done]="isStepDone(i, currentOrder)">
+            {{ step.label }}
+          </span>
+        </li>
+      </ul>
+    </article>
+
+    <article class="tracking__card">
+      <h2>Endereco de Entrega</h2>
+      <p>{{ currentOrder.customerName }}</p>
+      <p>{{ currentOrder.address }}</p>
+      <p>Telefone: {{ currentOrder.phone }}</p>
+    </article>
+
+    <article class="tracking__card tracking__card--items">
+      <h2>Itens do Pedido</h2>
+      <ul class="tracking__items">
+        <li *ngFor="let item of currentOrder.items; trackBy: trackByItem">
+          <div class="tracking__item-left">
+            <img [src]="item.image" [alt]="item.name" />
+            <div>
+              <strong>{{ item.quantity }}x {{ item.name }}</strong>
+              <span>{{ item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} cada</span>
+            </div>
+          </div>
+          <strong>{{ item.quantity * item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+        </li>
+      </ul>
+
+      <div class="tracking__price-rows">
+        <div>
+          <span>Subtotal</span>
+          <span>{{ subtotal() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+        </div>
+        <div>
+          <span>Taxa de entrega</span>
+          <span class="is-free">Gratis</span>
+        </div>
+      </div>
+
+      <div class="tracking__total tracking__total--strong">
+        <span>Total</span>
+        <strong>{{ currentOrder.total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+      </div>
+    </article>
+
+    <article class="tracking__card">
+      <h2>Pagamento</h2>
+      <div class="tracking__payment-row">
+        <span>Forma de pagamento</span>
+        <span class="tracking__payment-chip">{{ paymentLabel() }}</span>
+      </div>
+    </article>
+  </section>
+
+  <ng-template #noOrder>
+    <section class="tracking__empty">
+      <h2>Nenhum pedido em acompanhamento</h2>
+      <p>Faca um novo pedido para acompanhar por aqui.</p>
+      <button type="button" (click)="goBack()">Ir para o Cardapio</button>
+    </section>
+  </ng-template>
+</main>

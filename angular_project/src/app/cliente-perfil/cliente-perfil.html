@@ -1,0 +1,104 @@
+<main class="profile-page">
+  <section class="profile-header-card">
+    <div class="avatar">👤</div>
+    <div>
+      <h1>{{ profileState.clientName() }}</h1>
+      <p>{{ profileState.clientEmail() }}</p>
+    </div>
+    <a class="back-link" routerLink="/">Voltar para Home</a>
+  </section>
+
+  <section class="alert alert--active" *ngIf="hasActiveOrderAlert()">
+    Existe pedido em andamento. Acompanhe pelo botao do historico.
+  </section>
+
+  <section class="metrics-grid">
+    <article class="metric-card">
+      <p>Total de Pedidos</p>
+      <strong>{{ profileState.totalOrders() }}</strong>
+    </article>
+    <article class="metric-card">
+      <p>Total Gasto</p>
+      <strong>{{ profileState.totalSpent() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+    </article>
+    <article class="metric-card">
+      <p>Ticket Medio</p>
+      <strong>{{
+        profileState.averageTicket() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+      }}</strong>
+    </article>
+    <article class="metric-card">
+      <p>Ultimo Pedido</p>
+      <strong>
+        {{ profileState.lastOrderDate() ? (profileState.lastOrderDate() | date: 'dd/MM/yyyy') : '-' }}
+      </strong>
+    </article>
+  </section>
+
+  <section class="status-card">
+    <h2>Status do Cliente</h2>
+    <div class="status-grid">
+      <div class="status-item">
+        <small>Frequencia</small>
+        <strong>{{ profileState.frequencyLabel() }}</strong>
+      </div>
+      <div class="status-item">
+        <small>Status VIP</small>
+        <strong>{{ profileState.vipLabel() }}</strong>
+      </div>
+      <div class="status-item">
+        <small>Ultima Atividade</small>
+        <strong>{{ profileState.daysFromLastActivity() }} dias atras</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="history-card">
+    <h2>Historico de Pedidos ({{ profileState.totalOrders() }})</h2>
+
+    <article class="order-card" *ngFor="let order of profileState.orders()">
+      <header class="order-top">
+        <div>
+          <strong>{{ order.id }}</strong>
+          <p>{{ order.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+        </div>
+        <div class="order-meta">
+          <strong class="order-total">{{
+            order.total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+          }}</strong>
+          <span class="order-status" [class]="'order-status order-status--' + order.status">
+            {{ profileState.getStatusLabel(order.status) }}
+          </span>
+        </div>
+      </header>
+
+      <div class="verification" *ngIf="order.verificationCode && order.status !== 'cancelado'">
+        <small>Codigo de Verificacao</small>
+        <strong>{{ order.verificationCode }}</strong>
+        <p>Informe este codigo ao motoboy na entrega.</p>
+      </div>
+
+      <div class="order-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="goToOrderTracking(order.id)"
+          [disabled]="!canTrack(order.id)"
+        >
+          Acompanhar Pedido
+        </button>
+        <button type="button" class="btn" (click)="toggleExpand(order.id)">
+          {{ isExpanded(order.id) ? 'Ocultar detalhes' : 'Expandir pedido' }}
+        </button>
+        <button type="button" class="btn btn-outline">Repetir pedido</button>
+      </div>
+
+      <ul class="items" *ngIf="isExpanded(order.id)">
+        <li *ngFor="let item of order.items">
+          <span>{{ item.quantity }}x {{ item.name }}</span>
+          <strong>{{ item.price * item.quantity | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+        </li>
+      </ul>
+    </article>
+  </section>
+</main>

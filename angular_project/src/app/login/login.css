@@ -1,0 +1,228 @@
+/* Mobile-first (base: 390x844) */
+:host {
+  display: block;
+}
+
+.auth {
+  height: 93vh;
+  width: 92%;
+  background: #f6e9e4;
+  padding: 18px 16px 28px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+  align-content: start;
+  row-gap: 14px;
+  position: relative;
+}
+
+.back {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+  text-decoration: none;
+  font: 500 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  padding: 6px 2px;
+}
+
+.back__icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.card {
+  margin-top: 8rem;
+  width: min(350px, 90%);
+  height: min(350px, 90%);
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 18px 16px 14px;
+  box-shadow: 0 10px 35px rgba(17, 24, 39, 0.08);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.card.is-signup {
+  min-height: 500px;
+}
+
+.brand {
+  display: grid;
+  justify-items: center;
+  row-gap: 8px;
+  padding-top: 6px;
+}
+
+.brand__icon {
+  font-size: 22px;
+  line-height: 1;
+  filter: saturate(1.2);
+}
+
+.brand__title {
+  margin: 0;
+  font: 700 22px/1.15 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #111827;
+  letter-spacing: -0.2px;
+}
+
+.tabs {
+  margin-top: 12px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.tabs__tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font: 700 13px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #374151;
+  cursor: pointer;
+}
+
+.tabs__tab.is-active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+}
+
+.form {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font: 600 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field__label {
+  font: 700 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #111827;
+}
+
+.field__control {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  border-radius: 9px;
+  padding: 11px 11px; /* ~10% menor */
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: #f3f4f6;
+  color: #111827;
+  font: 500 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; /* ~10% menor */
+  outline: none;
+}
+
+select.field__control {
+  appearance: none;
+  padding-right: 38px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #6b7280 50%),
+    linear-gradient(135deg, #6b7280 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    0 0;
+  background-size:
+    6px 6px,
+    6px 6px,
+    100% 100%;
+  background-repeat: no-repeat;
+}
+
+.field__control::placeholder {
+  color: #6b7280;
+}
+
+.field__control:focus {
+  border-color: rgba(249, 115, 22, 0.55);
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.16);
+  background: #ffffff;
+}
+
+.submit {
+  margin-top: 1.5rem;
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 14px; /* acompanha inputs */
+  background: #f97316;
+  color: #ffffff;
+  font: 800 13px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.submit:hover {
+  filter: brightness(0.98);
+}
+
+.submit:active {
+  transform: translateY(1px);
+}
+
+.submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.helper {
+  text-align: justify;
+  margin: 4px 0 0;
+  text-align: center;
+  font: 500 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #6b7280;
+}
+
+.helper__link {
+  color: #f97316;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.helper__link:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+  .auth {
+    width: 98.3%;
+    height: 88.9vh;
+    padding-top: 60px;
+  }
+
+  .card {
+    padding: 22px 20px 16px;
+  }
+
+  .brand__title {
+    font-size: 24px;
+  }
+}

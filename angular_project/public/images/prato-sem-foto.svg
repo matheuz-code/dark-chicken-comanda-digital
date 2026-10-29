@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title description">
+  <title id="title">Prato sem foto</title>
+  <desc id="description">Imagem neutra para pratos que ainda não possuem foto cadastrada</desc>
+  <rect width="900" height="540" fill="#e5e7eb"/>
+  <circle cx="450" cy="250" r="120" fill="#f9fafb" stroke="#9ca3af" stroke-width="16"/>
+  <circle cx="450" cy="250" r="55" fill="none" stroke="#d1d5db" stroke-width="12"/>
+  <path d="M285 115v270M255 115v110c0 42 60 42 60 0V115M615 115v270M615 115c48 46 48 126 0 170" fill="none" stroke="#6b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="18"/>
+  <text x="450" y="455" fill="#4b5563" font-family="system-ui, sans-serif" font-size="34" font-weight="700" text-anchor="middle">Foto em breve</text>
+</svg>

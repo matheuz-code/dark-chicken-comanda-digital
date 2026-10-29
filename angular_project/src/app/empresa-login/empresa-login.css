@@ -1,0 +1,181 @@
+:host {
+  display: block;
+}
+
+.page {
+  min-height: 100vh;
+  background-color: #f4f7f6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  position: relative;
+}
+
+.back-link {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: #2d3436;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.card {
+  background: #fff;
+  width: 100%;
+  max-width: 550px;
+  padding: 35px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  color: #2d3436;
+}
+
+.header p {
+  color: #636e72;
+}
+
+.logo-upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 15px;
+  border: 2px dashed #dfe6e9;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.logo-upload-container:hover {
+  border-color: #ff8c00;
+}
+
+.logo-upload-container span,
+.logo-upload-container small {
+  color: #636e72;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+#logo {
+  display: none;
+}
+
+.icon-upload {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+label.field-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #2d3436;
+}
+
+input,
+select {
+  background-color: #f9f9f9;
+  border: 1px solid #dfe6e9;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: #b2bec3;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+  margin: 25px 0;
+}
+
+.btn-submit {
+  background-color: #000;
+  color: #ff8c00;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-submit:hover {
+  background-color: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 15px 0;
+  font-size: 0.85rem;
+  color: #636e72;
+}
+
+.checkbox-container input {
+  width: auto;
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9rem;
+}
+
+.login-link a {
+  color: #000;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .grid-row {
+    grid-template-columns: 1fr;
+  }
+
+  .full-width,
+  .grid-row > div {
+    grid-column: span 1;
+  }
+}

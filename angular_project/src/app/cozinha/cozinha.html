@@ -1,0 +1,166 @@
+<main class="kitchen-page">
+  <header class="kitchen-topbar">
+    <button type="button" class="topbar-link" (click)="goBack()">
+      <span aria-hidden="true">←</span>
+      <span>Voltar</span>
+    </button>
+
+    <h1 class="topbar-title">
+      <span aria-hidden="true">🍳</span>
+      <span>Painel da Cozinha</span>
+    </h1>
+
+    <div class="topbar-actions">
+      <button type="button" class="topbar-action" (click)="createDemoOrder()">Pedido teste</button>
+      <button type="button" class="topbar-action" (click)="goToProducts()">Produtos</button>
+    </div>
+  </header>
+
+  <section class="kitchen-shell">
+    <div class="tabs" role="tablist" aria-label="Status dos pedidos">
+      <button
+        type="button"
+        class="tab"
+        [class.is-active]="activeTab() === 'novos'"
+        (click)="setTab('novos')"
+      >
+        Novos Pedidos
+        <span>{{ newOrders().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="tab"
+        [class.is-active]="activeTab() === 'em_preparo'"
+        (click)="setTab('em_preparo')"
+      >
+        Em Preparo
+        <span>{{ preparingOrders().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="tab"
+        [class.is-active]="activeTab() === 'finalizados'"
+        (click)="setTab('finalizados')"
+      >
+        Finalizados
+        <span>{{ finishedOrders().length }}</span>
+      </button>
+    </div>
+
+    <section class="board-card">
+      <ng-container *ngIf="highlightedOrders().length; else emptyState">
+        <div class="orders-grid">
+          <article class="order-card" *ngFor="let order of highlightedOrders(); trackBy: trackByOrder">
+            <header class="order-card__header">
+              <div>
+                <p class="order-card__eyebrow">{{ getStatusLabel(order.kitchenStatus) }}</p>
+                <h2>{{ order.code }}</h2>
+              </div>
+              <span [class]="getStatusTone(order.kitchenStatus)">
+                {{ getOrderTypeLabel(order.orderType) }}
+              </span>
+            </header>
+
+            <div class="order-card__meta">
+              <div>
+                <span>Cliente</span>
+                <strong>{{ order.customerName }}</strong>
+              </div>
+              <div>
+                <span>Canal</span>
+                <strong>{{ order.sourceChannel | titlecase }}</strong>
+              </div>
+              <div>
+                <span>Recebido</span>
+                <strong>{{ order.createdAtIso | date: 'dd/MM HH:mm' }}</strong>
+              </div>
+              <div>
+                <span>Preparo</span>
+                <strong>{{ order.estimatedPrepMinutes }} min</strong>
+              </div>
+            </div>
+
+            <div class="order-card__customer">
+              <p><strong>Endereco:</strong> {{ order.address }}</p>
+              <p><strong>Contato:</strong> {{ order.phone }}</p>
+              <p><strong>Pagamento:</strong> {{ order.paymentMethod | titlecase }}</p>
+            </div>
+
+            <section class="order-card__items">
+              <h3>Itens do pedido</h3>
+              <ul>
+                <li *ngFor="let item of order.items">
+                  <span>{{ item.quantity }}x {{ item.name }}</span>
+                  <strong>{{
+                    item.quantity * item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                  }}</strong>
+                </li>
+              </ul>
+            </section>
+
+            <footer class="order-card__footer">
+              <div class="order-card__total">
+                <span>Total</span>
+                <strong>{{ order.total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+              </div>
+
+              <div class="order-card__actions">
+                <button
+                  *ngIf="order.kitchenStatus === 'novo'"
+                  type="button"
+                  class="primary-action"
+                  (click)="startPreparation(order.code)"
+                >
+                  Iniciar preparo
+                </button>
+                <button
+                  *ngIf="order.kitchenStatus === 'em_preparo'"
+                  type="button"
+                  class="primary-action primary-action--success"
+                  (click)="finishOrder(order.code)"
+                >
+                  Marcar finalizado
+                </button>
+                <span *ngIf="order.kitchenStatus === 'finalizado'" class="done-label">
+                  Pedido pronto para expedicao
+                </span>
+              </div>
+            </footer>
+          </article>
+        </div>
+      </ng-container>
+    </section>
+
+    <section class="summary-card">
+      <h2>Resumo do Dia</h2>
+      <div class="summary-grid">
+        <div>
+          <strong>{{ orders().length }}</strong>
+          <span>Total de Pedidos</span>
+        </div>
+        <div>
+          <strong>{{ deliveredCount() }}</strong>
+          <span>Finalizados</span>
+        </div>
+        <div>
+          <strong>{{ totalRevenue() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <span>Faturamento</span>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <div class="empty-state__icon" aria-hidden="true">🕒</div>
+      <h2>Nenhum pedido {{ getCurrentTabLabel() }} no momento</h2>
+      <p>
+        Quando um cliente finalizar o checkout no site, o pedido aparece aqui com ID, tipo,
+        cliente, horario e itens.
+      </p>
+      <button type="button" class="primary-action" (click)="createDemoOrder()">
+        Gerar pedido de teste
+      </button>
+    </div>
+  </ng-template>
+</main>
