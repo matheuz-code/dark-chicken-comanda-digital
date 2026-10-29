@@ -56,15 +56,24 @@
         />
       </div>
 
-      <div class="field" *ngIf="mode() === 'signup'">
-        <label class="field__label" for="role">Perfil</label>
-        <select id="role" class="field__control" formControlName="role">
-          <option value="client">Cliente</option>
-          <option value="admin">Administrador</option>
-          <option value="kitchen">Cozinha</option>
-          <option value="delivery">Entregador</option>
-        </select>
-      </div>
+      <ng-container *ngIf="mode() === 'signup'">
+        <div class="field">
+          <label class="field__label" for="nome">Nome</label>
+          <input id="nome" class="field__control" type="text" autocomplete="name"
+            maxlength="120" formControlName="nome" />
+        </div>
+        <div class="field">
+          <label class="field__label" for="telefone">Telefone</label>
+          <input id="telefone" class="field__control" type="tel" autocomplete="tel"
+            maxlength="30" formControlName="telefone" />
+        </div>
+        <div class="field">
+          <label class="field__label" for="endereco">Endereço de entrega</label>
+          <input id="endereco" class="field__control" type="text" autocomplete="street-address"
+            maxlength="500" formControlName="endereco" />
+        </div>
+        <p class="helper">Cadastro de cliente. Contas da equipe são gerenciadas pela administração.</p>
+      </ng-container>
 
       <div class="field">
         <label class="field__label" for="password">Senha</label>
@@ -72,7 +81,7 @@
           id="password"
           class="field__control"
           type="password"
-          autocomplete="current-password"
+          [attr.autocomplete]="mode() === 'signup' ? 'new-password' : 'current-password'"
           placeholder="••••••"
           formControlName="password"
         />
@@ -91,7 +100,7 @@
       </div>
 
       <button class="submit" type="submit" [disabled]="loading()">
-        {{ loading() ? 'Entrando...' : title() }}
+        {{ loading() ? (mode() === 'signup' ? 'Cadastrando...' : 'Entrando...') : title() }}
       </button>
 
       <p class="helper" *ngIf="mode() === 'login'">

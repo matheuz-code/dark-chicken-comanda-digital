@@ -4,7 +4,7 @@
 }
 
 .auth {
-  height: 93vh;
+  min-height: 93vh;
   width: 92%;
   background: #f6e9e4;
   padding: 18px 16px 28px;
@@ -42,7 +42,7 @@
 .card {
   margin-top: 8rem;
   width: min(350px, 90%);
-  height: min(350px, 90%);
+  height: auto;
   background: #ffffff;
   border-radius: 14px;
   padding: 18px 16px 14px;
@@ -214,7 +214,7 @@ select.field__control {
 @media (min-width: 768px) {
   .auth {
     width: 98.3%;
-    height: 88.9vh;
+    min-height: 88.9vh;
     padding-top: 60px;
   }
 

@@ -33,15 +33,17 @@ export class Login {
 
   protected readonly loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]],
   });
 
   protected readonly signupForm = this.fb.group(
     {
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', [Validators.required, Validators.minLength(6)]],
-      role: ['client', [Validators.required]],
+      password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]],
+      confirmPassword: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]],
+      nome: ['', [Validators.required, Validators.maxLength(120)]],
+      telefone: ['', [Validators.required, Validators.maxLength(30)]],
+      endereco: ['', [Validators.required, Validators.maxLength(500)]],
     },
     { validators: [passwordsMatchValidator] }
   );
@@ -54,7 +56,14 @@ export class Login {
   protected onSubmit() {
     const form = this.mode() === 'login' ? this.loginForm : this.signupForm;
     form.markAllAsTouched();
-    if (form.invalid) return;
+    if (form.invalid) {
+      this.errorMessage.set(
+        form.hasError('passwordsMismatch')
+          ? 'As senhas não coincidem.'
+          : 'Preencha os campos obrigatórios, informe um e-mail válido e use uma senha de 6 a 72 caracteres.'
+      );
+      return;
+    }
 
     if (this.mode() === 'login') {
       const { email, password } = this.loginForm.getRawValue();
@@ -65,7 +74,7 @@ export class Login {
           this.loading.set(false);
           const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
           this.router.navigateByUrl(
-            returnUrl?.startsWith('/') ? returnUrl : this.rotaInicial(usuario.perfil)
+            returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : this.rotaInicial(usuario.perfil)
           );
         },
         error: (error: HttpErrorResponse) => {
@@ -80,18 +89,34 @@ export class Login {
       return;
     }
 
-    const role = this.signupForm.getRawValue().role;
-    if (role === 'client') {
-      this.router.navigateByUrl('/cardapio');
-      return;
-    }
-    if (role === 'delivery') {
-      this.router.navigateByUrl('/motoboy');
-      return;
-    }
-
-    // Perfis ainda nao implementados no frontend atual.
-    this.router.navigateByUrl('/');
+    const { nome, email, password, telefone, endereco } = this.signupForm.getRawValue();
+    this.loading.set(true);
+    this.errorMessage.set('');
+    this.authService.cadastrarCliente({
+      nome: (nome ?? '').trim(),
+      email: (email ?? '').trim(),
+      senha: password ?? '',
+      telefone: (telefone ?? '').trim(),
+      endereco: (endereco ?? '').trim(),
+    }).subscribe({
+      next: () => {
+        this.loading.set(false);
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        void this.router.navigateByUrl(
+          returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/cardapio'
+        );
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loading.set(false);
+        this.errorMessage.set(
+          error.status === 409
+            ? 'Este e-mail já está cadastrado. Entre na sua conta.'
+            : error.status === 400
+              ? 'Confira os dados do cadastro e tente novamente.'
+              : 'Não foi possível cadastrar. Tente novamente em instantes.'
+        );
+      },
+    });
   }
 
   private rotaInicial(perfil: PerfilUsuario): string {
