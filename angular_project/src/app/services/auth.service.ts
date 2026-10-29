@@ -22,6 +22,14 @@ export interface AutenticacaoResponse {
   usuario: UsuarioAutenticado;
 }
 
+export interface CadastroClienteRequest {
+  nome: string;
+  email: string;
+  senha: string;
+  telefone: string;
+  endereco: string;
+}
+
 interface SessaoPersistida extends AutenticacaoResponse {
   expiraEmEpochMs: number;
 }
@@ -35,6 +43,12 @@ export class AuthService {
   login(email: string, senha: string): Observable<AutenticacaoResponse> {
     return this.http
       .post<AutenticacaoResponse>(`${this.endpoint}/login`, { email, senha })
+      .pipe(tap((response) => this.salvarSessao(response)));
+  }
+
+  cadastrarCliente(dados: CadastroClienteRequest): Observable<AutenticacaoResponse> {
+    return this.http
+      .post<AutenticacaoResponse>(`${this.endpoint}/register`, dados)
       .pipe(tap((response) => this.salvarSessao(response)));
   }
 
