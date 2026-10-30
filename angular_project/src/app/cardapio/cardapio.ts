@@ -58,6 +58,8 @@ export class Cardapio implements OnInit {
     () => this.route.snapshot.queryParamMap.get('modo') === 'gerenciar'
   );
 
+  protected searchTerm = '';
+
   protected activeCategory: CategoryId = 'todos';
   protected cart: CartItem[] = [];
 
@@ -66,7 +68,9 @@ export class Cardapio implements OnInit {
   }
 
   protected get filteredItems(): MenuItem[] {
-    return this.menuItems();
+    const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const query = normalize(this.searchTerm.trim());
+    return this.menuItems().filter(item => normalize(item.name + ' ' + item.description).includes(query));
   }
 
   protected get cartCount(): number {

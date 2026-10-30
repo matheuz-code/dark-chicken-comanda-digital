@@ -87,6 +87,21 @@ describe('Cardapio', () => {
     expect(dialog?.textContent).toContain('X-Burger');
   });
 
+  it('deve pesquisar e tratar resultados vazios sem alterar o catálogo', () => {
+    const content = fixture.nativeElement as HTMLElement;
+    const input = content.querySelector('#menu-search') as HTMLInputElement;
+    input.value = '  BURGER  ';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(content.querySelectorAll('.product-card')).toHaveLength(1);
+    expect(content.querySelector('.product-card')?.textContent).toContain('X-Burger');
+    input.value = 'produto inexistente';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(content.querySelectorAll('.product-card')).toHaveLength(0);
+    expect(content.textContent).toContain('Nenhum prato encontrado');
+  });
+
   function findButton(label: string): HTMLButtonElement {
     const buttons = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('button')

@@ -43,7 +43,7 @@
 
   <section *ngIf="isLoading()" class="menu-state" role="status" aria-live="polite">
     <span class="menu-state__spinner" aria-hidden="true"></span>
-    <p>Carregando cardápio...</p>
+    <p>Carregando cardápio... O servidor gratuito pode levar alguns minutos para iniciar após inatividade.</p>
   </section>
 
   <section *ngIf="!isLoading() && loadError()" class="menu-state menu-state--error" role="alert">
@@ -53,6 +53,12 @@
   </section>
 
   <ng-container *ngIf="!isLoading() && !loadError()">
+    <label for="menu-search">Buscar prato</label>
+    <input id="menu-search" #menuSearch type="search" placeholder="Digite o nome ou ingrediente"
+      [value]="searchTerm" (input)="searchTerm = menuSearch.value"
+      style="display:block;width:100%;box-sizing:border-box;padding:14px;border:1px solid #b7b7b7;border-radius:10px;margin:8px 0 16px;font:inherit" />
+    <p role="status" aria-live="polite">{{ filteredItems.length }} prato(s) encontrado(s) nesta categoria.</p>
+    <p>Demonstração acadêmica. Carrinho e fluxo visual de pedidos são locais; não há cobrança, entrega real ou sincronização com a cozinha em outro dispositivo.</p>
     <section class="filters" aria-label="Filtros de categoria">
       <button
         *ngFor="let category of categories(); trackBy: trackByCategory"
@@ -101,8 +107,8 @@
 
     <ng-template #emptyMenu>
       <section class="menu-state" role="status">
-        <h2>Nenhum prato disponível</h2>
-        <p>Não há pratos ativos nesta categoria no momento.</p>
+        <h2>Nenhum prato encontrado</h2>
+        <p>Tente outra busca ou categoria. Não há pratos correspondentes no momento.</p>
       </section>
     </ng-template>
   </ng-container>
