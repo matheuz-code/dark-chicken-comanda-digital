@@ -65,7 +65,7 @@ class AdminDashboardControllerIntegrationTest {
     }
 
     @Test
-    void calculaKpisDoDiaEFoodCostPonderadoEExcluiEstorno() throws Exception {
+    void ignoraPedidosPendentesECanceladosNosKpisFinanceiros() throws Exception {
         String cliente = registrarCliente("cliente.kpi.dashboard@teste.com");
         String admin = login("admin@email.com");
         criarPedido(cliente, 5, 2);
@@ -76,20 +76,20 @@ class AdminDashboardControllerIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(LocalDate.now().toString()))
-                .andExpect(jsonPath("$.faturamento").value(14.0))
-                .andExpect(jsonPath("$.totalPedidos").value(1))
-                .andExpect(jsonPath("$.ticketMedio").value(14.0))
-                .andExpect(jsonPath("$.custoIngredientesEstimado").value(8.0))
-                .andExpect(jsonPath("$.foodCostMedioPercentual").value(57.14));
+                .andExpect(jsonPath("$.faturamento").value(0.0))
+                .andExpect(jsonPath("$.totalPedidos").value(0))
+                .andExpect(jsonPath("$.ticketMedio").value(0.0))
+                .andExpect(jsonPath("$.custoIngredientesEstimado").value(0.0))
+                .andExpect(jsonPath("$.foodCostMedioPercentual").value(0.0));
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT status_pagamento FROM pedido WHERE id = ?",
                 String.class,
-                pedidoCancelado)).isEqualTo("ESTORNADO");
+                pedidoCancelado)).isEqualTo("CANCELADO");
     }
 
     @Test
-    void retornaTopCincoOrdenadoPorQuantidadeEValidaLimite() throws Exception {
+    void naoIncluiPedidosPendentesNoTopPratosEValidaLimite() throws Exception {
         String cliente = registrarCliente("cliente.top.dashboard@teste.com");
         String admin = login("admin@email.com");
         criarPedido(cliente, 5, 3);
@@ -99,11 +99,7 @@ class AdminDashboardControllerIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin))
                         .queryParam("limit", "5"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].pratoId").value(5))
-                .andExpect(jsonPath("$[0].pratoNome").value("Refrigerante lata"))
-                .andExpect(jsonPath("$[0].quantidadeVendida").value(3))
-                .andExpect(jsonPath("$[0].faturamento").value(21.0))
-                .andExpect(jsonPath("$[1].pratoId").value(1));
+                .andExpect(jsonPath("$").isEmpty());
 
         mockMvc.perform(get("/api/admin/dashboard/top-pratos")
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin))

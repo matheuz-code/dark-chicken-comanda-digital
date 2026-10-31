@@ -1,6 +1,5 @@
 package br.edu.unasp.comandadigital.controller;
 
-import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -197,8 +196,7 @@ class AdminFullFlowIntegrationTest {
         mockMvc.perform(get("/api/admin/dashboard/top-pratos")
                         .header(HttpHeaders.AUTHORIZATION, bearer(gerente)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.pratoId == " + pratoId + ")].quantidadeVendida")
-                        .value(hasItem(1)));
+                .andExpect(jsonPath("$").isEmpty());
 
         alterarStatus(admin, pedidoId, "CONFIRMADO");
         alterarStatus(admin, pedidoId, "EM_PREPARO");

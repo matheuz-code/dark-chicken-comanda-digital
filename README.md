@@ -2,13 +2,13 @@
 
 Projeto acadêmico fullstack para uma dark kitchen, com Angular 21, Java 17 e Spring Boot. O trabalho aplica modelagem de requisitos, API REST, autenticação JWT, autorização por perfis, persistência relacional e migrações versionadas.
 
-**Estado atual da publicação:** demonstração parcial funcional. Cardápio e autenticação de clientes estão integrados à API. O fluxo visual de pedidos ainda usa armazenamento local e não deve ser apresentado como uma operação de delivery completa.
+**Estado atual da publicação:** MVP de portfólio. O cardápio, a autenticação e os pedidos usam a API Spring Boot e MySQL. Use somente dados fictícios: o checkout é demonstrativo e não processa cobrança.
 
-## Sprint 1 em revisão — ainda não implantado
+## Sprint 1
 
-Esta branch conecta checkout, histórico, acompanhamento e cozinha aos endpoints Spring existentes, preservando as telas e o schema. Acrescenta recuperação limitada de leituras, detalhe restrito ao proprietário, baixa de estoque em CONFIRMADO e testes. A publicação nos links abaixo continua na versão anterior até aprovação e deploy separado.
+O Sprint 1 conecta checkout, histórico, acompanhamento e cozinha aos endpoints Spring existentes, preservando as telas e o schema. Inclui detalhe restrito ao proprietário, baixa de estoque em `CONFIRMADO`, cancelamento com estorno de estoque quando aplicável e idempotência persistente para reenvios do `POST /api/pedidos`.
 
-Consulte [contratos, validação, ambiente MySQL isolado e limitações](docs/SPRINT1.md). Testes unitários aprovados não equivalem a uma homologação ponta a ponta; a integração completa com MySQL permanece pendente nesta entrega local. Nenhum dado da Aiven foi usado pelos testes.
+Consulte [contratos, validação, ambiente MySQL isolado e limitações](docs/SPRINT1.md). Os testes de integração usam somente MySQL descartável; nenhum dado da Aiven é usado em testes.
 
 ## Demonstração
 
@@ -19,7 +19,7 @@ Consulte [contratos, validação, ambiente MySQL isolado e limitações](docs/SP
 
 O backend utiliza o plano gratuito do Render e pode levar alguns minutos para iniciar após inatividade. A interface contém nomes legados, como BomRango e Dark Kitchen App; todos pertencem a esta demonstração. Use somente dados fictícios nos testes. Não há credenciais administrativas públicas.
 
-## Funcionalidades da publicação vigente (antes do Sprint 1)
+## Funcionalidades do MVP
 
 | Área | Versão publicada |
 | --- | --- |
@@ -27,10 +27,11 @@ O backend utiliza o plano gratuito do Render e pode levar alguns minutos para in
 | Cadastro e login | Cadastro público exclusivo de clientes, validação dos dados, tratamento de e-mail duplicado e sessão JWT. |
 | Controle de acesso | Rotas protegidas e autorização no backend para CLIENTE, ADMIN, GERENTE e COZINHEIRO. |
 | Carrinho | Inclusão, alteração de quantidade e cálculo de total no frontend. |
-| Pedidos no frontend | Protótipo com persistência em localStorage; não sincroniza entre usuários ou dispositivos. |
-| Pedidos na API | Endpoints de criação, consulta, histórico e operação administrativa implementados separadamente; a interface ainda precisa ser conectada a eles. |
-| Administração na API | Pratos, categorias, usuários, ingredientes, estoque, fichas técnicas, fornecedores, compras e dashboard. O fluxo completo de cada tela não foi homologado em produção. |
-| Qualidade | Testes Angular/Vitest e testes Java de validação, tratamento de erros, autenticação, RBAC e regras de negócio. |
+| Pedidos | Checkout cria pedidos persistidos no MySQL, com chave de idempotência associada ao cliente. Histórico e acompanhamento consultam a API; o proprietário é validado no backend. |
+| Cozinha e operação | Perfis internos consultam e alteram o status dos pedidos conforme suas permissões. A baixa de estoque ocorre em `CONFIRMADO`; cancelamentos estornam apenas a movimentação aplicável. |
+| Pagamento | **Demonstrativo.** Pix, cartão e dinheiro registram somente a forma escolhida; nenhum valor é cobrado e novos pedidos ficam `PENDENTE`. KPIs financeiros e pratos mais vendidos consideram apenas pagamentos realmente `PAGO`. |
+| Administração | Pratos, categorias, usuários, ingredientes, estoque, fichas técnicas, fornecedores, compras e dashboard. Alguns fluxos administrativos seguem como demonstração acadêmica e devem ser homologados antes de uso comercial. |
+| Qualidade | Testes Angular/Vitest e testes Java de validação, autorização, idempotência, pedidos, estoque, cancelamento, estorno e integração MySQL. |
 
 ## Arquitetura e tecnologias
 
@@ -38,7 +39,7 @@ O backend utiliza o plano gratuito do Render e pode levar alguns minutos para in
 | --- | --- |
 | Frontend | Angular 21, TypeScript, Reactive Forms, RxJS, Chart.js e ng2-charts. Hospedado na Vercel. |
 | API | Java 17, Spring Boot 3.5, Spring Web, Spring Security e Bean Validation. Container Docker no Render. |
-| Dados | MySQL 8 na Aiven, Spring Data JPA/Hibernate e 10 migrações Flyway. |
+| Dados | MySQL 8 na Aiven, Spring Data JPA/Hibernate e 11 migrações Flyway. |
 | Segurança | Tokens JWT, hash BCrypt e autorização por papéis. Segredos definidos no ambiente de execução. |
 | Testes | Vitest no frontend; JUnit, Spring Boot Test e MockMvc no backend. |
 
@@ -89,16 +90,15 @@ npm start
 
 Abra `http://localhost:4200`. O ambiente de desenvolvimento consulta `http://localhost:8080/api`.
 
-## Validação realizada em 29/10/2026
+## Validação
 
 | Verificação | Resultado |
 | --- | --- |
-| Suíte completa do frontend | 20 testes aprovados em 8 arquivos. |
+| Suíte completa do frontend | Vitest executado no CI. |
 | Build Angular de produção | Aprovado; avisos de orçamento de tamanho de alguns bundles e estilos. |
 | Auditoria npm de produção | Zero vulnerabilidades reportadas. |
-| Testes unitários Java | 6 aprovados: DTOs e tratamento de exceções. |
-| Suíte Java de integração | Não executada integralmente neste ambiente: o MySQL local não conseguiu criar socket. Não foi usado o banco de produção. |
-| Integração publicada | Saúde da API, consulta ao cardápio, cadastro e login de cliente, conflito de e-mail e restrições de acesso verificados. |
+| Testes Java | JUnit, MockMvc e integração MySQL executados no CI com banco descartável. |
+| Segurança de dados | Nenhum teste de integração deve apontar para a Aiven de produção. |
 
 Comandos para reproduzir:
 
@@ -120,13 +120,12 @@ mvn verify
 
 ## Limitações conhecidas e próximos passos
 
-- Conectar carrinho, finalização e acompanhamento aos endpoints REST de pedidos. Hoje os pedidos da interface são locais e não chegam à cozinha em outro dispositivo.
-- O cadastro de empresas é um formulário de protótipo sem persistência.
+- Pagamento é demonstrativo: não há gateway, cobrança, conciliação ou confirmação financeira automática.
 - Recuperação automática de senha não está implementada; a tela informa a limitação.
-- Selecionar Pix, cartão ou dinheiro não realiza cobrança: não há gateway de pagamentos integrado.
-- GPS, notificações e alguns indicadores visuais não constituem integrações de produção homologadas.
+- GPS, notificações, rastreamento de entrega e alguns indicadores visuais permanecem em desenvolvimento.
+- O cadastro de empresas é um formulário de protótipo sem persistência.
 - A conta administrativa padrão permanece desativada até o provisionamento seguro. Painéis internos exigem uma conta autorizada.
-- Homologar o fluxo completo de pedidos e perfis em um ambiente de testes separado.
+- Homologar o fluxo completo de pedidos e perfis em ambiente operacional separado, com pagamento real somente se vier a ser integrado e auditado.
 - Consolidar identidade visual e reduzir os avisos de tamanho do build.
 
 ## Decisões técnicas demonstradas
