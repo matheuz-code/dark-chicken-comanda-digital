@@ -9,11 +9,12 @@ import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { routes } from './app.routes';
 import { jwtInterceptor } from './interceptors/jwt.interceptor';
+import { vercelPreviewApiGuardInterceptor } from './interceptors/vercel-preview-api-guard.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withInterceptors([jwtInterceptor])),
+    provideHttpClient(withInterceptors([vercelPreviewApiGuardInterceptor, jwtInterceptor])),
     provideCharts(withDefaultRegisterables()),
     provideRouter(routes),
     {
