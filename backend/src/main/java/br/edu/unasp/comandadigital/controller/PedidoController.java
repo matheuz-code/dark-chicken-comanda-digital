@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -45,8 +46,9 @@ public class PedidoController {
     @Operation(summary = "Criar pedido", description = "Recalcula preços e valida o estoque no servidor")
     public ResponseEntity<PedidoCriadoResponse> criar(
             Authentication authentication,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CriarPedidoRequest request) {
-        PedidoCriadoResponse response = pedidoService.criar(authentication.getName(), request);
+        PedidoCriadoResponse response = pedidoService.criar(authentication.getName(), idempotencyKey, request);
         return ResponseEntity.created(URI.create("/api/pedidos/" + response.id() + "/status"))
                 .body(response);
     }

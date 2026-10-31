@@ -31,6 +31,7 @@ export class OrderPersistenceService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly base = environment.apiUrl;
+  private pendingCreateKey?: string;
 
   async loadConfirmedOrders(): Promise<ConfirmedOrder[]> {
     const user = this.auth.usuario();
@@ -88,9 +89,11 @@ export class OrderPersistenceService {
       formaPagamento: payload.paymentMethod.toUpperCase(),
     };
     // Sem retry: repetir um POST após perda de resposta pode duplicar um pedido.
-    const result = await firstValueFrom(
-      this.http.post<PedidoResponse>(`${this.base}/pedidos`, body),
-    );
+    const idempotencyKey = this.pendingCreateKey ?? (this.pendingCreateKey = crypto.randomUUID());
+    const result = await firstValueFrom(this.http.post<PedidoResponse>(`${this.base}/pedidos`, body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }));
+    this.pendingCreateKey = undefined;
     this.assertSameUser(userId);
     return this.fromApi(result);
   }

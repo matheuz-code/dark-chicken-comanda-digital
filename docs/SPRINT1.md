@@ -72,3 +72,9 @@ A proposta de workflow `.github/workflows/sprint1-tests.yml` usa somente runners
 - O build preserva os orçamentos existentes; avisos de bundle/CSS não foram ocultados.
 - Revisão de segurança cobriu os 9 commits da base e os arquivos da branch por padrões/contexto; não constitui garantia absoluta de ausência de vulnerabilidades. Não foram detectadas credenciais operacionais ou dumps confidenciais nessa revisão. Credenciais de seed permanecem protegidas pelo mecanismo original e as migrações históricas não foram reescritas.
 - Nenhum merge, deploy, alteração de visibilidade, credencial ou banco de produção é autorizado por este documento.
+
+## Ajustes finais de segurança operacional
+
+- O checkout continua demonstrativo: pedidos novos ficam com pagamento `PENDENTE`; nenhuma cobrança é processada pelo sistema.
+- O cliente envia `Idempotency-Key` no checkout. A API associa a chave ao cliente e ao conteúdo normalizado do pedido: reenvios idênticos devolvem o mesmo pedido e a reutilização com conteúdo diferente é recusada.
+- Os testes de integração usam exclusivamente o schema descartável `dark_chicken_sprint1_test`.

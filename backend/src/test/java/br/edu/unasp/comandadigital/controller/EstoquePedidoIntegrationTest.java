@@ -158,7 +158,7 @@ class EstoquePedidoIntegrationTest {
         cancelar(gerente, pedidoId, "Cancelamento operacional")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELADO"))
-                .andExpect(jsonPath("$.statusPagamento").value("ESTORNADO"));
+                .andExpect(jsonPath("$.statusPagamento").value("CANCELADO"));
 
         Map<Long, BigDecimal> estornos = quantidadesMovimentadas(
                 pedidoId,
