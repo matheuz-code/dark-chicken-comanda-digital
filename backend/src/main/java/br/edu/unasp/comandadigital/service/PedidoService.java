@@ -2,12 +2,16 @@ package br.edu.unasp.comandadigital.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -73,8 +77,18 @@ public class PedidoService {
     }
 
     @Transactional
-    public PedidoCriadoResponse criar(String emailCliente, CriarPedidoRequest request) {
-        Usuario cliente = carregarCliente(emailCliente);
+    public PedidoCriadoResponse criar(String emailCliente, String idempotencyKey, CriarPedidoRequest request) {
+        Usuario cliente = carregarClienteParaCriacao(emailCliente);
+        String chave = validarChaveIdempotencia(idempotencyKey);
+        String requestHash = hashRequest(request);
+        var pedidoExistente = pedidoRepository.findByClienteIdAndIdempotencyKey(cliente.getId(), chave);
+        if (pedidoExistente.isPresent()) {
+            Pedido pedido = pedidoExistente.get();
+            if (!requestHash.equals(pedido.getIdempotencyRequestHash())) {
+                throw new RegraNegocioException("A chave de idempotência já foi usada com outro pedido");
+            }
+            return toCriadoResponse(pedido, pedidoItemRepository.findByPedidoId(pedido.getId()));
+        }
         Map<Long, PedidoItemRequest> itensPorPrato = validarItensUnicos(request.itens());
         Map<Long, Prato> pratosPorId = carregarPratosAtivos(itensPorPrato.keySet());
 
@@ -84,7 +98,7 @@ public class PedidoService {
                 cliente,
                 request.formaPagamento(),
                 request.enderecoEntrega().trim(),
-                normalizarTextoOpcional(request.observacoes()));
+                normalizarTextoOpcional(request.observacoes()), chave, requestHash);
 
         List<PedidoItem> itens = itensPorPrato.values().stream()
                 .map(itemRequest -> {
@@ -139,6 +153,13 @@ public class PedidoService {
                 pedido.getUpdatedAt())));
     }
 
+    public PedidoCriadoResponse detalharMeu(String emailCliente, Long pedidoId) {
+        Usuario cliente = carregarCliente(emailCliente);
+        Pedido pedido = pedidoRepository.findByIdAndClienteId(pedidoId, cliente.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pedido não encontrado para o cliente autenticado"));
+        return toCriadoResponse(pedido, pedidoItemRepository.findByPedidoId(pedido.getId()));
+    }
+
     public PedidoStatusResponse consultarStatus(String emailCliente, Long pedidoId) {
         Usuario cliente = carregarCliente(emailCliente);
         Pedido pedido = pedidoRepository.findByIdAndClienteId(pedidoId, cliente.getId())
@@ -168,6 +189,31 @@ public class PedidoService {
                 .filter(usuario -> usuario.getPerfil() == PerfilUsuario.CLIENTE)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Cliente autenticado não encontrado ou inativo"));
+    }
+
+    private Usuario carregarClienteParaCriacao(String emailCliente) {
+        return usuarioRepository.findByEmailIgnoreCaseForUpdate(emailCliente)
+                .filter(usuario -> usuario.getStatus() == StatusAtivacao.ATIVO)
+                .filter(usuario -> usuario.getPerfil() == PerfilUsuario.CLIENTE)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente autenticado não encontrado ou inativo"));
+    }
+
+    private String validarChaveIdempotencia(String chave) {
+        if (chave == null || chave.isBlank()) return UUID.randomUUID().toString();
+        if (chave == null || !chave.matches("[A-Za-z0-9._:-]{8,100}")) {
+            throw new RegraNegocioException("Idempotency-Key deve ter entre 8 e 100 caracteres seguros");
+        }
+        return chave;
+    }
+
+    private String hashRequest(CriarPedidoRequest request) {
+        String valor = request.itens().stream()
+                .sorted(java.util.Comparator.comparing(PedidoItemRequest::pratoId))
+                .map(item -> item.pratoId() + ":" + item.quantidade() + ":" + normalizarTextoOpcional(item.observacoes()))
+                .collect(Collectors.joining("|")) + "#" + request.enderecoEntrega().trim() + "#" + request.formaPagamento() + "#" + normalizarTextoOpcional(request.observacoes());
+        try {
+            return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(valor.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
     }
 
     private Map<Long, PedidoItemRequest> validarItensUnicos(List<PedidoItemRequest> itens) {

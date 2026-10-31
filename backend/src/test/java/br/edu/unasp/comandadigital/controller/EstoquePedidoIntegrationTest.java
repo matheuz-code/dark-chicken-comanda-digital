@@ -43,7 +43,7 @@ class EstoquePedidoIntegrationTest {
     private EntityManager entityManager;
 
     @Test
-    void baixaUmaSaidaConsolidadaPorIngredienteAoEntrarEmPreparo() throws Exception {
+    void baixaAoConfirmarESemDuplicarAoEntrarEmPreparo() throws Exception {
         String cliente = registrarCliente("cliente.baixa.estoque@teste.com");
         String admin = login("admin@email.com");
         String cozinheiro = criarUsuarioInternoELogar(
@@ -61,6 +61,7 @@ class EstoquePedidoIntegrationTest {
 
         alterarStatus(admin, pedidoId, "CONFIRMADO")
                 .andExpect(status().isOk());
+        assertThat(quantidadesMovimentadas(pedidoId, "SAIDA", "VENDA")).hasSize(6);
         alterarStatus(cozinheiro, pedidoId, "EM_PREPARO")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("EM_PREPARO"));
@@ -80,7 +81,7 @@ class EstoquePedidoIntegrationTest {
                 WHERE movimentacao.pedido_id = %d
                   AND movimentacao.tipo = 'SAIDA'
                   AND movimentacao.motivo = 'VENDA'
-                  AND usuario.perfil = 'COZINHEIRO'
+                  AND usuario.perfil = 'ADMIN'
                 """.formatted(pedidoId))).isEqualTo(6);
 
         alterarStatus(admin, pedidoId, "EM_PREPARO")
@@ -100,14 +101,11 @@ class EstoquePedidoIntegrationTest {
         long pedidoId = criarPedido(
                 cliente,
                 "[{\"pratoId\":1,\"quantidade\":1}]");
-        alterarStatus(admin, pedidoId, "CONFIRMADO")
-                .andExpect(status().isOk());
-
         jdbcTemplate.update(
                 "UPDATE estoque_movimentacao SET quantidade = 188.0000 WHERE id = 2");
         entityManager.clear();
 
-        alterarStatus(cozinheiro, pedidoId, "EM_PREPARO")
+        alterarStatus(admin, pedidoId, "CONFIRMADO")
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.mensagem", containsString("Carne bovina")))
                 .andExpect(jsonPath("$.mensagem", containsString("necessário 189")))
@@ -116,9 +114,9 @@ class EstoquePedidoIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT status FROM pedido WHERE id = ?",
                 String.class,
-                pedidoId)).isEqualTo("CONFIRMADO");
+                pedidoId)).isEqualTo("RECEBIDO");
         assertThat(contar("SELECT COUNT(*) FROM pedido_status_historico WHERE pedido_id = "
-                + pedidoId)).isEqualTo(2);
+                + pedidoId)).isEqualTo(1);
         assertThat(contar("SELECT COUNT(*) FROM estoque_movimentacao WHERE pedido_id = "
                 + pedidoId)).isZero();
     }
@@ -160,7 +158,7 @@ class EstoquePedidoIntegrationTest {
         cancelar(gerente, pedidoId, "Cancelamento operacional")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELADO"))
-                .andExpect(jsonPath("$.statusPagamento").value("ESTORNADO"));
+                .andExpect(jsonPath("$.statusPagamento").value("CANCELADO"));
 
         Map<Long, BigDecimal> estornos = quantidadesMovimentadas(
                 pedidoId,

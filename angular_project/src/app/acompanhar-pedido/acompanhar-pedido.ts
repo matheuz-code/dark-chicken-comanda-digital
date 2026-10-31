@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ClientProfileStateService } from '../client-profile-state.service';
 import { ConfirmedOrder, OrderStateService } from '../order-state.service';
@@ -15,7 +15,35 @@ interface Step {
   templateUrl: './acompanhar-pedido.html',
   styleUrl: './acompanhar-pedido.css',
 })
-export class AcompanharPedido {
+export class AcompanharPedido implements OnInit, OnDestroy {
+  private timer?: ReturnType<typeof setInterval>;
+  protected error: string | null = null;
+  ngOnInit(): void {
+    this.reload();
+    this.timer = setInterval(() => {
+      if (document.visibilityState === 'visible') this.reload();
+    }, 15000);
+  }
+  ngOnDestroy(): void {
+    clearInterval(this.timer);
+  }
+  private pending = false;
+  private reload(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id || this.pending) return;
+    this.pending = true;
+    void this.orderState
+      .refreshOrder(id)
+      .then(() => {
+        this.error = null;
+      })
+      .catch(() => {
+        this.error = 'Não foi possível atualizar este pedido pela API.';
+      })
+      .finally(() => {
+        this.pending = false;
+      });
+  }
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly orderState = inject(OrderStateService);
@@ -32,37 +60,7 @@ export class AcompanharPedido {
       return stateOrder;
     }
 
-    const profileOrder = this.profileState.getOrderById(orderId);
-    if (!profileOrder) return null;
-
-    // Mapeia o formato da tela de acompanhamento atual.
-    const currentStep = this.mapStatusToStep(profileOrder.status);
-    return {
-      code: profileOrder.id,
-      items: profileOrder.items,
-      customerName: this.profileState.clientName(),
-      address: 'Endereco cadastrado no app',
-      phone: 'Telefone cadastrado no app',
-      paymentMethod: 'pix',
-      orderType: 'delivery',
-      sourceChannel: 'site',
-      total: profileOrder.total,
-      currentStep,
-      kitchenStatus:
-        profileOrder.status === 'em_preparo'
-          ? 'em_preparo'
-          : profileOrder.status === 'pronto'
-            ? 'finalizado'
-            : 'novo',
-      deliveryStatus:
-        profileOrder.status === 'entregue'
-          ? 'entregue'
-          : profileOrder.status === 'pronto'
-            ? 'aguardando_motoboy'
-            : 'aguardando_motoboy',
-      createdAtIso: profileOrder.createdAt.toISOString(),
-      estimatedPrepMinutes: 20,
-    };
+    return null;
   });
   protected readonly steps: Step[] = [
     { label: 'Pedido Recebido', icon: '🕒' },
@@ -82,6 +80,7 @@ export class AcompanharPedido {
   protected readonly progressText = computed(() => {
     const currentOrder = this.order();
     if (!currentOrder) return '0 de 6 etapas concluidas';
+    if (currentOrder.backendStatus === 'CANCELADO') return 'Pedido cancelado';
     return `${currentOrder.currentStep + 1} de ${this.steps.length} etapas concluidas`;
   });
 
@@ -121,7 +120,7 @@ export class AcompanharPedido {
   }
 
   private mapStatusToStep(
-    status: 'aguardando' | 'em_preparo' | 'pronto' | 'entregue' | 'cancelado'
+    status: 'aguardando' | 'em_preparo' | 'pronto' | 'entregue' | 'cancelado',
   ): number {
     if (status === 'aguardando') return 0;
     if (status === 'em_preparo') return 2;

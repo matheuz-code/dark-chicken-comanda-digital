@@ -96,7 +96,7 @@ export class AdminOrders implements OnInit {
     if (!this.detalhe || this.motivoCancelamento.trim().length < 3) return;
     this.saving = true;
     this.api.cancelarPedido(this.detalhe.id, this.motivoCancelamento.trim()).subscribe({
-      next: (detalhe) => this.operacaoConcluida(detalhe, 'Pedido cancelado e pagamento estornado.'),
+      next: (detalhe) => this.operacaoConcluida(detalhe, this.mensagemCancelamento(detalhe)),
       error: (error) => this.tratarErro(error, 'Não foi possível cancelar o pedido.'),
     });
   }
@@ -113,6 +113,12 @@ export class AdminOrders implements OnInit {
     this.api.listarPedidos(this.statusFiltro).subscribe((pagina) => {
       this.pedidos = pagina.conteudo;
     });
+  }
+
+  private mensagemCancelamento(detalhe: PedidoAdminDetalhe): string {
+    return detalhe.statusPagamento === 'ESTORNADO'
+      ? 'Pedido cancelado e pagamento estornado.'
+      : 'Pedido cancelado; nenhum pagamento foi confirmado.';
   }
 
   private tratarErro(error: HttpErrorResponse, fallback: string): void {

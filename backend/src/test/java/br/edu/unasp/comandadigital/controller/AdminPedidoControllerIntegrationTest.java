@@ -213,7 +213,7 @@ class AdminPedidoControllerIntegrationTest {
         cancelar(cozinheiro, pedidoAntesPreparo, "Cliente informou endereço incorreto")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELADO"))
-                .andExpect(jsonPath("$.statusPagamento").value("ESTORNADO"))
+                .andExpect(jsonPath("$.statusPagamento").value("CANCELADO"))
                 .andExpect(jsonPath("$.motivoCancelamento")
                         .value("Cliente informou endereço incorreto"))
                 .andExpect(jsonPath("$.timeline.length()").value(2));
@@ -227,7 +227,7 @@ class AdminPedidoControllerIntegrationTest {
         cancelar(gerente, pedidoEmPreparo, "Problema operacional")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELADO"))
-                .andExpect(jsonPath("$.statusPagamento").value("ESTORNADO"))
+                .andExpect(jsonPath("$.statusPagamento").value("CANCELADO"))
                 .andExpect(jsonPath("$.timeline.length()").value(4))
                 .andExpect(jsonPath("$.timeline[3].usuario.perfil").value("GERENTE"));
 

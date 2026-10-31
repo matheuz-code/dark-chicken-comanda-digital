@@ -43,7 +43,10 @@
 
   <section *ngIf="isLoading()" class="menu-state" role="status" aria-live="polite">
     <span class="menu-state__spinner" aria-hidden="true"></span>
-    <p>Carregando cardápio... O servidor gratuito pode levar alguns minutos para iniciar após inatividade.</p>
+    <p>
+      Consultando a API — tentativa {{ loadingAttempt() }} de 12. O servidor gratuito pode estar
+      iniciando. A espera é limitada a até 3 minutos; não há garantia de disponibilidade.
+    </p>
   </section>
 
   <section *ngIf="!isLoading() && loadError()" class="menu-state menu-state--error" role="alert">
@@ -54,11 +57,31 @@
 
   <ng-container *ngIf="!isLoading() && !loadError()">
     <label for="menu-search">Buscar prato</label>
-    <input id="menu-search" #menuSearch type="search" placeholder="Digite o nome ou ingrediente"
-      [value]="searchTerm" (input)="searchTerm = menuSearch.value"
-      style="display:block;width:100%;box-sizing:border-box;padding:14px;border:1px solid #b7b7b7;border-radius:10px;margin:8px 0 16px;font:inherit" />
-    <p role="status" aria-live="polite">{{ filteredItems.length }} prato(s) encontrado(s) nesta categoria.</p>
-    <p>Demonstração acadêmica. Carrinho e fluxo visual de pedidos são locais; não há cobrança, entrega real ou sincronização com a cozinha em outro dispositivo.</p>
+    <input
+      id="menu-search"
+      #menuSearch
+      type="search"
+      placeholder="Digite o nome ou ingrediente"
+      [value]="searchTerm"
+      (input)="searchTerm = menuSearch.value"
+      style="
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 14px;
+        border: 1px solid #b7b7b7;
+        border-radius: 10px;
+        margin: 8px 0 16px;
+        font: inherit;
+      "
+    />
+    <p role="status" aria-live="polite">
+      {{ filteredItems.length }} prato(s) encontrado(s) nesta categoria.
+    </p>
+    <p>
+      Demonstração acadêmica. O carrinho é um rascunho local; pedidos confirmados são consultados na
+      API. Pagamento é simulado, sem cobrança real.
+    </p>
     <section class="filters" aria-label="Filtros de categoria">
       <button
         *ngFor="let category of categories(); trackBy: trackByCategory"
@@ -72,7 +95,11 @@
       </button>
     </section>
 
-    <section *ngIf="filteredItems.length; else emptyMenu" class="products" aria-label="Lista de produtos">
+    <section
+      *ngIf="filteredItems.length; else emptyMenu"
+      class="products"
+      aria-label="Lista de produtos"
+    >
       <article class="product-card" *ngFor="let item of filteredItems; trackBy: trackByProduct">
         <img class="product-card__image" [src]="item.image" [alt]="item.name" />
         <div class="product-card__body">
@@ -84,11 +111,7 @@
               item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
             }}</strong>
             <div class="product-card__actions">
-              <button
-                type="button"
-                class="secondary-btn"
-                (click)="openDishDetails(item.id)"
-              >
+              <button type="button" class="secondary-btn" (click)="openDishDetails(item.id)">
                 Detalhes
               </button>
               <button
@@ -125,8 +148,7 @@
         <div class="cart__item-info">
           <strong>{{ cartItem.item.name }}</strong>
           <span class="cart__item-price">{{
-            cartItem.item.price * cartItem.quantity
-              | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            cartItem.item.price * cartItem.quantity | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
           }}</span>
         </div>
 
@@ -143,6 +165,14 @@
           >
             🗑
           </button>
+          <label
+            >Observação do item<input
+              #itemNotes
+              type="text"
+              maxlength="500"
+              [value]="cartItem.notes || ''"
+              (input)="updateNotes(cartItem.item.id, itemNotes.value)"
+          /></label>
         </div>
       </li>
     </ul>
@@ -155,9 +185,7 @@
     </div>
 
     <div class="cart__finish-wrap">
-      <button type="button" class="cart__finish" (click)="finalizeOrder()">
-        Finalizar Pedido
-      </button>
+      <button type="button" class="cart__finish" (click)="finalizeOrder()">Finalizar Pedido</button>
     </div>
   </section>
 </main>
@@ -179,7 +207,11 @@
       <p>Carregando detalhes...</p>
     </div>
 
-    <div *ngIf="!detailsLoading() && detailsError()" class="menu-state menu-state--error" role="alert">
+    <div
+      *ngIf="!detailsLoading() && detailsError()"
+      class="menu-state menu-state--error"
+      role="alert"
+    >
       <h2>Detalhes indisponíveis</h2>
       <p>{{ detailsError() }}</p>
       <button type="button" class="primary-btn" (click)="retryDetails()">Tentar novamente</button>

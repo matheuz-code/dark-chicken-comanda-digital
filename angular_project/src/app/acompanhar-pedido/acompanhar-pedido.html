@@ -1,3 +1,4 @@
+<p *ngIf="error" role="alert">{{ error }}</p>
 <main class="tracking">
   <header class="tracking__header">
     <button type="button" class="tracking__back" (click)="goBack()">
@@ -12,7 +13,11 @@
     <article class="tracking__card">
       <div class="tracking__order-top">
         <strong>Pedido {{ currentOrder.code }}</strong>
-        <span class="tracking__badge">{{ steps[currentOrder.currentStep].label }}</span>
+        <span class="tracking__badge">{{
+          currentOrder.backendStatus === 'CANCELADO'
+            ? 'Cancelado'
+            : steps[currentOrder.currentStep]?.label
+        }}</span>
       </div>
 
       <div class="tracking__progress">
@@ -50,7 +55,9 @@
               <span>{{ item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} cada</span>
             </div>
           </div>
-          <strong>{{ item.quantity * item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <strong>{{
+            item.quantity * item.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+          }}</strong>
         </li>
       </ul>
 

@@ -1,4 +1,6 @@
 import { Injectable, signal } from '@angular/core';
+import type { StatusPedido } from './models/admin.model';
+import { AuthService } from './services/auth.service';
 import { ClientProfileStateService } from './client-profile-state.service';
 import { OrderPersistenceService } from './order-persistence.service';
 import { OrderStatus } from './models/client-profile.model';
@@ -9,6 +11,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  notes?: string;
 }
 
 export type PaymentMethod = 'pix' | 'cartao' | 'dinheiro';
@@ -17,6 +20,7 @@ export type KitchenOrderStatus = 'novo' | 'em_preparo' | 'finalizado';
 export type DeliveryOrderStatus = 'aguardando_motoboy' | 'em_rota' | 'entregue';
 
 export interface ConfirmedOrder {
+  backendStatus?: StatusPedido;
   code: string;
   items: OrderItem[];
   customerName: string;
@@ -24,7 +28,7 @@ export interface ConfirmedOrder {
   phone: string;
   paymentMethod: PaymentMethod;
   orderType: OrderType;
-  sourceChannel: 'site';
+  sourceChannel: 'site' | 'ifood' | 'whatsapp' | 'telefone' | 'outro';
   total: number;
   currentStep: number;
   kitchenStatus: KitchenOrderStatus;
@@ -37,24 +41,67 @@ export interface ConfirmedOrder {
 
 @Injectable({ providedIn: 'root' })
 export class OrderStateService {
-  private readonly hasLoadedOrders = signal(false);
+  private sessionVersion = 0;
 
   constructor(
     private readonly orderPersistence: OrderPersistenceService,
-    private readonly clientProfileState: ClientProfileStateService
+    private readonly clientProfileState: ClientProfileStateService,
+    private readonly auth: AuthService,
   ) {
-    void this.hydrateOrders();
+    this.auth.sessaoAlterada.subscribe(() => {
+      this.sessionVersion++;
+      this.refreshing = undefined;
+      this.orders.set([]);
+      this.confirmedOrder.set(null);
+      this.syncProfile();
+      if (!this.auth.usuario()) this.setItems([]);
+      void this.refresh().catch(() => {});
+    });
+    this.restoreDraft();
+    void this.refresh().catch(() => {});
   }
 
   readonly items = signal<OrderItem[]>([]);
   readonly confirmedOrder = signal<ConfirmedOrder | null>(null);
   readonly orders = signal<ConfirmedOrder[]>([]);
 
-  setItems(items: OrderItem[]) {
-    this.items.set(items);
+  private restoreDraft(): void {
+    try {
+      const saved: unknown = JSON.parse(sessionStorage.getItem('dark-chicken.cart-draft') || '[]');
+      if (
+        Array.isArray(saved) &&
+        saved.length <= 50 &&
+        saved.every(
+          (item) =>
+            item &&
+            Number.isSafeInteger(item.id) &&
+            item.id > 0 &&
+            Number.isInteger(item.quantity) &&
+            item.quantity >= 1 &&
+            item.quantity <= 100 &&
+            Number.isFinite(item.price) &&
+            item.price >= 0 &&
+            typeof item.name === 'string' &&
+            typeof item.image === 'string' &&
+            (!item.notes || typeof item.notes === 'string'),
+        )
+      )
+        this.items.set(saved);
+    } catch {
+      /* Rascunho inválido não é tratado como pedido confirmado. */
+    }
   }
 
-  /** Confirma o pedido localmente até a integração da fase de pedidos da API. */
+  setItems(items: OrderItem[]) {
+    this.items.set(items);
+    try {
+      sessionStorage.setItem('dark-chicken.cart-draft', JSON.stringify(items));
+    } catch {
+      /* Rascunho permanece em memória. */
+    }
+  }
+
+  /** Pedido confirmado somente após resposta da API; nenhum pedido local é criado. */
   async confirmOrder(payload: {
     customerName: string;
     address: string;
@@ -62,143 +109,87 @@ export class OrderStateService {
     paymentMethod: PaymentMethod;
     orderType?: OrderType;
   }): Promise<ConfirmedOrder> {
-    await this.ensureOrdersLoaded();
-    const checkoutItems = this.items();
-    const total = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-    const code = `ORD-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-    const confirmedOrder: ConfirmedOrder = {
-      code,
-      items: checkoutItems,
-      customerName: payload.customerName,
-      address: payload.address,
-      phone: payload.phone,
-      paymentMethod: payload.paymentMethod,
-      orderType: payload.orderType ?? 'delivery',
-      sourceChannel: 'site',
-      total,
-      currentStep: 0,
-      kitchenStatus: 'novo',
-      deliveryStatus: 'aguardando_motoboy',
-      createdAtIso: new Date().toISOString(),
-      estimatedPrepMinutes: this.estimatePrepMinutes(checkoutItems),
-    };
-
-    await this.orderPersistence.saveConfirmedOrder(confirmedOrder);
-    this.orders.set([confirmedOrder, ...this.orders().filter((order) => order.code !== code)]);
-    this.clientProfileState.addOrder({
-      id: confirmedOrder.code,
-      total: confirmedOrder.total,
-      items: confirmedOrder.items,
-      status: 'aguardando',
-      createdAt: new Date(),
-    });
-
+    const confirmedOrder = await this.orderPersistence.create(this.items(), payload);
+    this.orders.update((orders) => [
+      confirmedOrder,
+      ...orders.filter((order) => order.code !== confirmedOrder.code),
+    ]);
+    this.syncProfile();
     this.confirmedOrder.set(confirmedOrder);
 
-    this.items.set([]);
+    this.setItems([]);
     return confirmedOrder;
   }
 
-  async generateMockOrder(): Promise<ConfirmedOrder> {
-    await this.ensureOrdersLoaded();
-    const demoItems: OrderItem[] = [
-      {
-        id: 1,
-        name: 'Burger Classico',
-        price: 25.9,
-        quantity: 2,
-        image:
-          'https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&w=900&q=80',
-      },
-      {
-        id: 3,
-        name: 'Batata Frita',
-        price: 12.9,
-        quantity: 1,
-        image:
-          'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=900&q=80',
-      },
-    ];
-    const total = demoItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const confirmedOrder: ConfirmedOrder = {
-      code: `ORD-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-      items: demoItems,
-      customerName: 'Pedido de Teste',
-      address: 'Rua das Palmeiras, 120',
-      phone: '11999998888',
-      paymentMethod: 'pix',
-      orderType: 'delivery',
-      sourceChannel: 'site',
-      total,
-      currentStep: 0,
-      kitchenStatus: 'novo',
-      deliveryStatus: 'aguardando_motoboy',
-      createdAtIso: new Date().toISOString(),
-      estimatedPrepMinutes: this.estimatePrepMinutes(demoItems),
-    };
-
-    this.orders.set([confirmedOrder, ...this.orders()]);
-    this.confirmedOrder.set(confirmedOrder);
-    this.clientProfileState.addOrder({
-      id: confirmedOrder.code,
-      total: confirmedOrder.total,
-      items: confirmedOrder.items,
-      status: 'aguardando',
-      createdAt: new Date(),
-    });
-    await this.orderPersistence.saveConfirmedOrders(this.orders());
-    return confirmedOrder;
-  }
-
+  /** A ação de teste da cozinha agora abre o fluxo real do cliente, sem inserir pedidos locais. */
   async updateKitchenStatus(code: string, kitchenStatus: KitchenOrderStatus): Promise<void> {
-    await this.ensureOrdersLoaded();
-    const nextOrders = this.orders().map((order) => {
-      if (order.code !== code) return order;
+    await this.setBackendStatus(code, kitchenStatus === 'em_preparo' ? 'EM_PREPARO' : 'PRONTO');
+  }
 
-      const timestamps =
-        kitchenStatus === 'em_preparo'
-          ? { startedAtIso: order.startedAtIso ?? new Date().toISOString() }
-          : kitchenStatus === 'finalizado'
-            ? { finishedAtIso: new Date().toISOString() }
-            : {};
-
-      return {
-        ...order,
-        kitchenStatus,
-        currentStep: this.mapKitchenStatusToStep(kitchenStatus, order.deliveryStatus),
-        ...timestamps,
-      };
-    });
-
-    this.orders.set(nextOrders);
-    const currentOrder = nextOrders.find((order) => order.code === code) ?? null;
-    if (currentOrder) {
-      this.confirmedOrder.set(currentOrder);
-      this.clientProfileState.updateOrderStatus(code, this.mapKitchenStatusToClientStatus(kitchenStatus));
-    }
-    await this.orderPersistence.saveConfirmedOrders(nextOrders);
+  async confirmReceipt(code: string): Promise<void> {
+    await this.setBackendStatus(code, 'CONFIRMADO');
   }
 
   async updateDeliveryStatus(code: string, deliveryStatus: DeliveryOrderStatus): Promise<void> {
-    await this.ensureOrdersLoaded();
-    const nextOrders = this.orders().map((order) => {
-      if (order.code !== code) return order;
+    await this.setBackendStatus(
+      code,
+      deliveryStatus === 'entregue' ? 'FINALIZADO' : 'SAIU_ENTREGA',
+    );
+  }
 
-      return {
-        ...order,
-        deliveryStatus,
-        currentStep: this.mapDeliveryStatusToStep(order.kitchenStatus, deliveryStatus),
-      };
-    });
+  private async setBackendStatus(code: string, status: StatusPedido): Promise<void> {
+    const updated = await this.orderPersistence.updateStatus(code, status);
+    this.orders.update((orders) => orders.map((order) => (order.code === code ? updated : order)));
+    this.confirmedOrder.set(updated);
+    this.syncProfile();
+  }
 
-    this.orders.set(nextOrders);
-    const currentOrder = nextOrders.find((order) => order.code === code) ?? null;
-    if (currentOrder) {
-      this.confirmedOrder.set(currentOrder);
-      this.clientProfileState.updateOrderStatus(code, this.mapDeliveryStatusToClientStatus(deliveryStatus));
-    }
-    await this.orderPersistence.saveConfirmedOrders(nextOrders);
+  readonly loading = signal(false);
+  readonly loadError = signal<string | null>(null);
+  private refreshing?: Promise<void>;
+
+  refresh(): Promise<void> {
+    if (this.refreshing) return this.refreshing;
+    this.loading.set(true);
+    this.loadError.set(null);
+    const version = this.sessionVersion;
+    const request = this.orderPersistence
+      .loadConfirmedOrders()
+      .then((orders) => {
+        if (version !== this.sessionVersion) return;
+        this.orders.set(orders);
+        this.confirmedOrder.set(orders[0] ?? null);
+        this.syncProfile();
+      })
+      .catch((error) => {
+        if (version !== this.sessionVersion) return;
+        this.orders.set([]);
+        this.confirmedOrder.set(null);
+        this.syncProfile();
+        this.loadError.set(
+          'Não foi possível consultar os pedidos na API. Nenhum histórico local foi usado como substituto.',
+        );
+        throw error;
+      })
+      .finally(() => {
+        if (version === this.sessionVersion) {
+          this.loading.set(false);
+          this.refreshing = undefined;
+        }
+      });
+    this.refreshing = request;
+    return this.refreshing;
+  }
+
+  async refreshOrder(code: string): Promise<void> {
+    const order = await this.orderPersistence.loadById(code);
+    this.orders.update((orders) => [order, ...orders.filter((item) => item.code !== code)]);
+    this.confirmedOrder.set(order);
+    this.syncProfile();
+  }
+
+  private syncProfile(): void {
+    this.clientProfileState.setApiOrders(this.orders());
   }
 
   getOrderByCode(code: string): ConfirmedOrder | undefined {
@@ -206,25 +197,8 @@ export class OrderStateService {
   }
 
   clear() {
-    this.items.set([]);
+    this.setItems([]);
     this.confirmedOrder.set(null);
-  }
-
-  private async hydrateOrders() {
-    if (this.hasLoadedOrders()) return;
-
-    const persistedOrders = (await this.orderPersistence.loadConfirmedOrders()).map((order) =>
-      this.normalizeOrder(order)
-    );
-    const latestOrder = await this.orderPersistence.loadLastConfirmedOrder();
-    this.orders.set(persistedOrders);
-    this.confirmedOrder.set(latestOrder ? this.normalizeOrder(latestOrder) : null);
-    this.hasLoadedOrders.set(true);
-  }
-
-  private async ensureOrdersLoaded() {
-    if (this.hasLoadedOrders()) return;
-    await this.hydrateOrders();
   }
 
   private estimatePrepMinutes(items: OrderItem[]): number {
@@ -232,7 +206,10 @@ export class OrderStateService {
     return Math.max(15, totalItems * 8);
   }
 
-  private mapKitchenStatusToStep(status: KitchenOrderStatus, deliveryStatus: DeliveryOrderStatus): number {
+  private mapKitchenStatusToStep(
+    status: KitchenOrderStatus,
+    deliveryStatus: DeliveryOrderStatus,
+  ): number {
     if (status === 'novo') return 0;
     if (status === 'em_preparo') return 2;
     return this.mapDeliveryStatusToStep(status, deliveryStatus);
@@ -246,7 +223,7 @@ export class OrderStateService {
 
   private mapDeliveryStatusToStep(
     kitchenStatus: KitchenOrderStatus,
-    deliveryStatus: DeliveryOrderStatus
+    deliveryStatus: DeliveryOrderStatus,
   ): number {
     if (kitchenStatus === 'novo') return 0;
     if (kitchenStatus === 'em_preparo') return 2;

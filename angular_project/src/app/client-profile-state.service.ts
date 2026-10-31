@@ -1,16 +1,45 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { CLIENT_PROFILE_API_MOCK } from './mocks/client-profile-api.mock';
+import { Injectable, computed, signal, inject } from '@angular/core';
+import { AuthService } from './services/auth.service';
+import type { ConfirmedOrder } from './order-state.service';
 import { ClientOrder, ClientProfileDto, OrderStatus } from './models/client-profile.model';
 
 @Injectable({ providedIn: 'root' })
 export class ClientProfileStateService {
-  private readonly profile = signal(this.fromApiDto(CLIENT_PROFILE_API_MOCK));
+  private readonly auth = inject(AuthService);
+  private readonly profile = signal<{ name: string; email: string; orders: ClientOrder[] }>({
+    name: this.auth.usuario()?.nome || '',
+    email: this.auth.usuario()?.email || '',
+    orders: [],
+  });
+
+  setApiOrders(orders: ConfirmedOrder[]): void {
+    this.profile.set({
+      name: this.auth.usuario()?.nome || '',
+      email: this.auth.usuario()?.email || '',
+      orders: orders.map((order) => ({
+        id: order.code,
+        total: order.total,
+        items: order.items,
+        createdAt: new Date(order.createdAtIso),
+        status:
+          order.backendStatus === 'CANCELADO'
+            ? 'cancelado'
+            : order.currentStep >= 5
+              ? 'entregue'
+              : order.currentStep >= 3
+                ? 'pronto'
+                : order.currentStep >= 2
+                  ? 'em_preparo'
+                  : 'aguardando',
+      })),
+    });
+  }
 
   readonly clientName = computed(() => this.profile().name);
   readonly clientEmail = computed(() => this.profile().email);
 
   readonly orders = computed(() =>
-    [...this.profile().orders].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    [...this.profile().orders].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
   );
 
   readonly totalOrders = computed(() => this.orders().length);
@@ -44,7 +73,7 @@ export class ClientProfileStateService {
   });
 
   readonly activeOrdersCount = computed(
-    () => this.orders().filter((order) => this.isActive(order.status)).length
+    () => this.orders().filter((order) => this.isActive(order.status)).length,
   );
 
   getOrderById(orderId: string): ClientOrder | undefined {
@@ -115,7 +144,11 @@ export class ClientProfileStateService {
     });
   }
 
-  private fromApiDto(dto: ClientProfileDto): { name: string; email: string; orders: ClientOrder[] } {
+  private fromApiDto(dto: ClientProfileDto): {
+    name: string;
+    email: string;
+    orders: ClientOrder[];
+  } {
     return {
       name: dto.name,
       email: dto.email,

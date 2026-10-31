@@ -1,6 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 import {
   ConfirmedOrder,
   KitchenOrderStatus,
@@ -16,30 +17,68 @@ type KitchenTab = 'novos' | 'em_preparo' | 'finalizados';
   templateUrl: './cozinha.html',
   styleUrl: './cozinha.css',
 })
-export class Cozinha {
+export class Cozinha implements OnInit, OnDestroy {
+  private timer?: ReturnType<typeof setInterval>;
+  protected readonly auth = inject(AuthService);
+  protected actionError: string | null = null;
+  protected busy = false;
+  ngOnInit(): void {
+    this.refresh();
+    this.timer = setInterval(() => {
+      if (document.visibilityState === 'visible') this.refresh();
+    }, 15000);
+  }
+  ngOnDestroy(): void {
+    clearInterval(this.timer);
+  }
+  protected refresh(): void {
+    void this.orderState.refresh().catch(() => {});
+  }
+  protected canConfirm(): boolean {
+    return ['ADMIN', 'GERENTE'].includes(this.auth.usuario()?.perfil || '');
+  }
+  protected async confirmReceipt(code: string): Promise<void> {
+    await this.act(() => this.orderState.confirmReceipt(code));
+  }
+  private async act(action: () => Promise<void>): Promise<boolean> {
+    if (this.busy) return false;
+    this.busy = true;
+    this.actionError = null;
+    try {
+      await action();
+      return true;
+    } catch {
+      this.actionError =
+        'A API não confirmou a alteração. Atualize a lista antes de tentar novamente.';
+      return false;
+    } finally {
+      this.busy = false;
+    }
+  }
   private readonly router = inject(Router);
   protected readonly orderState = inject(OrderStateService);
 
   protected readonly activeTab = signal<KitchenTab>('novos');
 
   protected readonly orders = computed(() =>
-    [...this.orderState.orders()].sort(
-      (a, b) => new Date(b.createdAtIso).getTime() - new Date(a.createdAtIso).getTime()
-    )
+    this.orderState
+      .orders()
+      .filter((order) => order.backendStatus !== 'CANCELADO')
+      .sort((a, b) => new Date(b.createdAtIso).getTime() - new Date(a.createdAtIso).getTime()),
   );
 
   protected readonly newOrders = computed(() =>
-    this.orders().filter((order) => order.kitchenStatus === 'novo')
+    this.orders().filter((order) => order.kitchenStatus === 'novo'),
   );
   protected readonly preparingOrders = computed(() =>
-    this.orders().filter((order) => order.kitchenStatus === 'em_preparo')
+    this.orders().filter((order) => order.kitchenStatus === 'em_preparo'),
   );
   protected readonly finishedOrders = computed(() =>
-    this.orders().filter((order) => order.kitchenStatus === 'finalizado')
+    this.orders().filter((order) => order.kitchenStatus === 'finalizado'),
   );
 
   protected readonly totalRevenue = computed(() =>
-    this.orders().reduce((sum, order) => sum + order.total, 0)
+    this.orders().reduce((sum, order) => sum + order.total, 0),
   );
   protected readonly deliveredCount = computed(() => this.finishedOrders().length);
   protected readonly highlightedOrders = computed(() => {
@@ -57,8 +96,7 @@ export class Cozinha {
   }
 
   protected async createDemoOrder() {
-    await this.orderState.generateMockOrder();
-    this.activeTab.set('novos');
+    await this.router.navigateByUrl('/cardapio');
   }
 
   protected setTab(tab: KitchenTab) {
@@ -66,13 +104,13 @@ export class Cozinha {
   }
 
   protected async startPreparation(code: string) {
-    await this.orderState.updateKitchenStatus(code, 'em_preparo');
-    this.activeTab.set('em_preparo');
+    if (await this.act(() => this.orderState.updateKitchenStatus(code, 'em_preparo')))
+      this.activeTab.set('em_preparo');
   }
 
   protected async finishOrder(code: string) {
-    await this.orderState.updateKitchenStatus(code, 'finalizado');
-    this.activeTab.set('finalizados');
+    if (await this.act(() => this.orderState.updateKitchenStatus(code, 'finalizado')))
+      this.activeTab.set('finalizados');
   }
 
   protected getOrderTypeLabel(orderType: OrderType): string {

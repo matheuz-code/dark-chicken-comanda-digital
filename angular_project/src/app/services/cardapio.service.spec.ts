@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { PaginaResponse, PratoCardapioResponse } from '../models/cardapio.model';
 import { CardapioService } from './cardapio.service';
@@ -30,7 +31,7 @@ describe('CardapioService', () => {
     });
 
     const request = httpTesting.expectOne(
-      (candidate) => candidate.url === `${environment.apiUrl}/cardapio`
+      (candidate) => candidate.url === `${environment.apiUrl}/cardapio`,
     );
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('categoriaId')).toBe('2');
@@ -75,3 +76,28 @@ function menuPage(): PaginaResponse<PratoCardapioResponse> {
     ultima: true,
   };
 }
+
+describe('Contrato real do cardápio', () => {
+  let api: CardapioService;
+  let http: HttpTestingController;
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    api = TestBed.inject(CardapioService);
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => http.verify());
+  it('recusa HTTP 200 incompatível sem repetir nem fingir cardápio vazio', async () => {
+    const result = firstValueFrom(api.listarComRecuperacao());
+    const rejected = expect(result).rejects.toThrow('incompatível');
+    http.expectOne((req) => req.url.endsWith('/cardapio')).flush({ status: 'starting' });
+    await rejected;
+    http.expectNone((req) => req.url.endsWith('/cardapio'));
+  });
+  it('aceita catálogo vazio válido sem inventar pratos', async () => {
+    const result = firstValueFrom(api.listarComRecuperacao());
+    http.expectOne((req) => req.url.endsWith('/cardapio')).flush({ conteudo: [] });
+    expect((await result).conteudo).toEqual([]);
+  });
+});

@@ -12,6 +12,10 @@
   </header>
 
   <main class="container">
+    <p *ngIf="actionError || orderState.loadError()" role="alert">
+      {{ actionError || orderState.loadError() }}
+    </p>
+    <button type="button" (click)="refresh()" [disabled]="busy">Atualizar pedidos</button>
     <div class="search-box">
       <span class="search-icon">⌕</span>
       <input
@@ -34,7 +38,7 @@
 
       <div class="card stat-card">
         <div class="stat-number green">R$ {{ ganhosHoje().toFixed(2) }}</div>
-        <div class="stat-label">Ganhos Hoje</div>
+        <div class="stat-label">Total dos pedidos finalizados carregados</div>
       </div>
     </section>
 
@@ -52,7 +56,7 @@
         [class.active]="abaAtiva === 'entregas'"
         (click)="selecionarAba('entregas')"
       >
-        Minhas Entregas
+        Entregas em rota
       </button>
 
       <button
@@ -71,7 +75,10 @@
           <p>Nenhum pedido disponivel no momento</p>
         </div>
 
-        <div *ngFor="let pedido of pedidosDisponiveis(); trackBy: trackByPedido" class="pedido-item">
+        <div
+          *ngFor="let pedido of pedidosDisponiveis(); trackBy: trackByPedido"
+          class="pedido-item"
+        >
           <div class="pedido-info">
             <h3>Pedido #{{ pedido.code }}</h3>
             <p><strong>Cliente:</strong> {{ pedido.customerName }}</p>
@@ -79,7 +86,7 @@
             <p><strong>Valor:</strong> R$ {{ pedido.total.toFixed(2) }}</p>
           </div>
 
-          <button class="action-btn" (click)="aceitarPedido(pedido.code)">
+          <button class="action-btn" [disabled]="busy" (click)="aceitarPedido(pedido.code)">
             Aceitar
           </button>
         </div>
@@ -99,7 +106,11 @@
             <p><strong>Valor:</strong> R$ {{ pedido.total.toFixed(2) }}</p>
           </div>
 
-          <button class="action-btn finish" (click)="finalizarPedido(pedido.code)">
+          <button
+            class="action-btn finish"
+            [disabled]="busy"
+            (click)="finalizarPedido(pedido.code)"
+          >
             Finalizar
           </button>
         </div>
@@ -111,7 +122,10 @@
           <p>Nenhuma entrega finalizada ainda</p>
         </div>
 
-        <div *ngFor="let pedido of finalizadas(); trackBy: trackByPedido" class="pedido-item finalizado">
+        <div
+          *ngFor="let pedido of finalizadas(); trackBy: trackByPedido"
+          class="pedido-item finalizado"
+        >
           <div class="pedido-info">
             <h3>Pedido #{{ pedido.code }}</h3>
             <p><strong>Cliente:</strong> {{ pedido.customerName }}</p>

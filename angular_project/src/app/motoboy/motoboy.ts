@@ -13,25 +13,31 @@ import { ConfirmedOrder, OrderStateService } from '../order-state.service';
 })
 export class Motoboy {
   private readonly router = inject(Router);
-  private readonly orderState = inject(OrderStateService);
+  protected readonly orderState = inject(OrderStateService);
+  protected busy = false;
+  protected actionError: string | null = null;
+  constructor() {
+    void this.orderState.refresh().catch(() => {});
+  }
 
   protected titulo = 'Painel do Motoboy';
   protected busca = '';
   protected abaAtiva: 'disponiveis' | 'entregas' | 'finalizadas' = 'disponiveis';
 
   protected readonly pedidosDisponiveis = computed(() =>
-    this.filtrarPedidos((pedido) =>
-      pedido.kitchenStatus === 'finalizado' && pedido.deliveryStatus === 'aguardando_motoboy'
-    )
+    this.filtrarPedidos(
+      (pedido) =>
+        pedido.kitchenStatus === 'finalizado' && pedido.deliveryStatus === 'aguardando_motoboy',
+    ),
   );
   protected readonly minhasEntregas = computed(() =>
-    this.filtrarPedidos((pedido) => pedido.deliveryStatus === 'em_rota')
+    this.filtrarPedidos((pedido) => pedido.deliveryStatus === 'em_rota'),
   );
   protected readonly finalizadas = computed(() =>
-    this.filtrarPedidos((pedido) => pedido.deliveryStatus === 'entregue')
+    this.filtrarPedidos((pedido) => pedido.deliveryStatus === 'entregue'),
   );
   protected readonly ganhosHoje = computed(() =>
-    this.finalizadas().reduce((total, pedido) => total + pedido.total, 0)
+    this.finalizadas().reduce((total, pedido) => total + pedido.total, 0),
   );
 
   protected selecionarAba(aba: 'disponiveis' | 'entregas' | 'finalizadas'): void {
@@ -43,13 +49,33 @@ export class Motoboy {
   }
 
   protected async aceitarPedido(code: string): Promise<void> {
-    await this.orderState.updateDeliveryStatus(code, 'em_rota');
-    this.abaAtiva = 'entregas';
+    if (await this.act(() => this.orderState.updateDeliveryStatus(code, 'em_rota')))
+      this.abaAtiva = 'entregas';
   }
 
   protected async finalizarPedido(code: string): Promise<void> {
-    await this.orderState.updateDeliveryStatus(code, 'entregue');
-    this.abaAtiva = 'finalizadas';
+    if (await this.act(() => this.orderState.updateDeliveryStatus(code, 'entregue')))
+      this.abaAtiva = 'finalizadas';
+  }
+
+  private async act(action: () => Promise<void>): Promise<boolean> {
+    if (this.busy) return false;
+    this.busy = true;
+    this.actionError = null;
+    try {
+      await action();
+      return true;
+    } catch {
+      this.actionError =
+        'A API não confirmou a alteração. Atualize os pedidos antes de tentar novamente.';
+      return false;
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  protected refresh(): void {
+    void this.orderState.refresh().catch(() => {});
   }
 
   protected trackByPedido(index: number, pedido: ConfirmedOrder): string {
@@ -58,7 +84,7 @@ export class Motoboy {
 
   private filtrarPedidos(predicate: (pedido: ConfirmedOrder) => boolean): ConfirmedOrder[] {
     return this.orderState.orders().filter((pedido) => {
-      if (!predicate(pedido)) return false;
+      if (pedido.backendStatus === 'CANCELADO' || !predicate(pedido)) return false;
       const termo = this.busca.trim().toLowerCase();
       if (!termo) return true;
 

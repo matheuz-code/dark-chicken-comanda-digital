@@ -43,6 +43,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     Optional<Pedido> findByIdAndClienteId(Long id, Long clienteId);
 
+    Optional<Pedido> findByClienteIdAndIdempotencyKey(Long clienteId, String idempotencyKey);
+
     @EntityGraph(attributePaths = "cliente")
     @Query("SELECT pedido FROM Pedido pedido WHERE pedido.id = :id")
     Optional<Pedido> findComClienteById(@Param("id") Long id);

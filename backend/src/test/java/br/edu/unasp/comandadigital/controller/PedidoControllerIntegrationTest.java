@@ -46,6 +46,8 @@ class PedidoControllerIntegrationTest {
                         .content(pedidoJson("PIX", "{\"pratoId\":5,\"quantidade\":1}")))
                 .andExpect(status().isUnauthorized());
 
+        mockMvc.perform(get("/api/pedidos/1")).andExpect(status().isUnauthorized());
+
         mockMvc.perform(get("/api/pedidos/meus"))
                 .andExpect(status().isUnauthorized());
 
@@ -82,7 +84,7 @@ class PedidoControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString("/api/pedidos/")))
                 .andExpect(jsonPath("$.status").value("RECEBIDO"))
-                .andExpect(jsonPath("$.statusPagamento").value("PAGO"))
+                .andExpect(jsonPath("$.statusPagamento").value("PENDENTE"))
                 .andExpect(jsonPath("$.formaPagamento").value("PIX"))
                 .andExpect(jsonPath("$.valorTotal").value(56.80))
                 .andExpect(jsonPath("$.criadoEm").exists())
@@ -102,7 +104,7 @@ class PedidoControllerIntegrationTest {
         assertThat(contar("SELECT COUNT(*) FROM pedido")).isEqualTo(pedidosAntes + 1);
         assertThat(pedido.get("canal")).isEqualTo("SITE");
         assertThat(pedido.get("status")).isEqualTo("RECEBIDO");
-        assertThat(pedido.get("status_pagamento")).isEqualTo("PAGO");
+        assertThat(pedido.get("status_pagamento")).isEqualTo("PENDENTE");
         assertThat(pedido.get("forma_pagamento")).isEqualTo("PIX");
         assertThat((BigDecimal) pedido.get("valor_total"))
                 .isEqualByComparingTo("56.80");
@@ -239,7 +241,7 @@ class PedidoControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(pedidoId))
                 .andExpect(jsonPath("$.status").value("RECEBIDO"))
-                .andExpect(jsonPath("$.statusPagamento").value("PAGO"))
+                .andExpect(jsonPath("$.statusPagamento").value("PENDENTE"))
                 .andExpect(jsonPath("$.timeline.length()").value(1))
                 .andExpect(jsonPath("$.timeline[0].status").value("RECEBIDO"))
                 .andExpect(jsonPath("$.timeline[0].registradoEm").exists());
@@ -248,6 +250,47 @@ class PedidoControllerIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenB))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensagem", containsString("cliente autenticado")));
+    }
+
+    @Test
+    void detalheDoPedidoPreservaContratoESomenteDonoPodeLer() throws Exception {
+        String owner = registrarCliente("owner.detalhe@example.invalid");
+        String other = registrarCliente("other.detalhe@example.invalid");
+        long id = criarPedido(owner, "PIX", "{\"pratoId\":5,\"quantidade\":2}");
+        mockMvc.perform(get("/api/pedidos/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.status").value("RECEBIDO"))
+                .andExpect(jsonPath("$.formaPagamento").value("PIX"))
+                .andExpect(jsonPath("$.valorTotal").value(14.0))
+                .andExpect(jsonPath("$.criadoEm").isString())
+                .andExpect(jsonPath("$.itens[0].pratoId").value(5))
+                .andExpect(jsonPath("$.itens[0].quantidade").value(2))
+                .andExpect(jsonPath("$.itens[0].precoUnitario").value(7.0));
+        mockMvc.perform(get("/api/pedidos/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + other))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/pedidos/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + loginAdmin()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void replaysTheSameIdempotencyKeyWithoutCreatingAnotherOrderAndRejectsDifferentContent() throws Exception {
+        String token = registrarCliente("cliente.idempotente@teste.com");
+        String key = "checkout-retry-0001";
+        String body = pedidoJson("PIX", "{\"pratoId\":5,\"quantidade\":1}");
+        MvcResult first = mockMvc.perform(post("/api/pedidos")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        long id = objectMapper.readTree(first.getResponse().getContentAsString()).path("id").asLong();
+        mockMvc.perform(post("/api/pedidos").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(id));
+        assertThat(contar("SELECT COUNT(*) FROM pedido WHERE cliente_id = (SELECT id FROM usuario WHERE email = 'cliente.idempotente@teste.com')")).isEqualTo(1);
+        mockMvc.perform(post("/api/pedidos").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON)
+                        .content(pedidoJson("PIX", "{\"pratoId\":5,\"quantidade\":2}")))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     private String registrarCliente(String email) throws Exception {

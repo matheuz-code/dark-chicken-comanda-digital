@@ -1,10 +1,9 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { readFailureMessage } from '../services/api-recovery';
 import { ActivatedRoute, Router } from '@angular/router';
-import {
-  PratoCardapioResponse,
-  PratoDetalheResponse,
-} from '../models/cardapio.model';
+import { PratoCardapioResponse, PratoDetalheResponse } from '../models/cardapio.model';
 import { OrderStateService } from '../order-state.service';
 import { CardapioService } from '../services/cardapio.service';
 
@@ -26,6 +25,7 @@ interface MenuItem {
 }
 
 interface CartItem {
+  notes?: string;
   item: MenuItem;
   quantity: number;
 }
@@ -36,7 +36,9 @@ interface CartItem {
   templateUrl: './cardapio.html',
   styleUrl: './cardapio.css',
 })
-export class Cardapio implements OnInit {
+export class Cardapio implements OnInit, OnDestroy {
+  private menuSubscription?: Subscription;
+  protected readonly loadingAttempt = signal(1);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly orderState = inject(OrderStateService);
@@ -55,7 +57,7 @@ export class Cardapio implements OnInit {
   protected readonly selectedDish = signal<PratoDetalheResponse | null>(null);
 
   protected readonly isManagementView = computed(
-    () => this.route.snapshot.queryParamMap.get('modo') === 'gerenciar'
+    () => this.route.snapshot.queryParamMap.get('modo') === 'gerenciar',
   );
 
   protected searchTerm = '';
@@ -64,13 +66,30 @@ export class Cardapio implements OnInit {
   protected cart: CartItem[] = [];
 
   ngOnInit(): void {
+    this.cart = (this.orderState.items?.() || []).map((item) => ({
+      item: { ...item, description: '', categoryId: 0, categoryName: '' },
+      quantity: item.quantity,
+      notes: item.notes,
+    }));
     this.loadMenu('todos');
   }
 
+  ngOnDestroy(): void {
+    this.menuSubscription?.unsubscribe();
+    this.menuRequestSequence++;
+    this.detailsRequestSequence++;
+  }
+
   protected get filteredItems(): MenuItem[] {
-    const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const normalize = (value: string) =>
+      value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
     const query = normalize(this.searchTerm.trim());
-    return this.menuItems().filter(item => normalize(item.name + ' ' + item.description).includes(query));
+    return this.menuItems().filter((item) =>
+      normalize(item.name + ' ' + item.description).includes(query),
+    );
   }
 
   protected get cartCount(): number {
@@ -94,17 +113,22 @@ export class Cardapio implements OnInit {
   protected addToCart(item: MenuItem): void {
     const existing = this.cart.find((cartItem) => cartItem.item.id === item.id);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity = Math.min(100, existing.quantity + 1);
       this.cart = [...this.cart];
+      this.saveDraft();
       return;
     }
     this.cart = [...this.cart, { item, quantity: 1 }];
+    this.saveDraft();
   }
 
   protected increaseQuantity(itemId: number): void {
     this.cart = this.cart.map((cartItem) =>
-      cartItem.item.id === itemId ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
+      cartItem.item.id === itemId
+        ? { ...cartItem, quantity: Math.min(100, cartItem.quantity + 1) }
+        : cartItem,
     );
+    this.saveDraft();
   }
 
   protected decreaseQuantity(itemId: number): void {
@@ -112,13 +136,35 @@ export class Cardapio implements OnInit {
       .map((cartItem) =>
         cartItem.item.id === itemId
           ? { ...cartItem, quantity: Math.max(cartItem.quantity - 1, 0) }
-          : cartItem
+          : cartItem,
       )
       .filter((cartItem) => cartItem.quantity > 0);
+    this.saveDraft();
   }
 
   protected removeFromCart(itemId: number): void {
     this.cart = this.cart.filter((cartItem) => cartItem.item.id !== itemId);
+    this.saveDraft();
+  }
+
+  protected updateNotes(id: number, notes: string): void {
+    this.cart = this.cart.map((item) =>
+      item.item.id === id ? { ...item, notes: notes.slice(0, 500) } : item,
+    );
+    this.saveDraft();
+  }
+
+  private saveDraft(): void {
+    this.orderState.setItems(
+      this.cart.map((entry) => ({
+        id: entry.item.id,
+        name: entry.item.name,
+        image: entry.item.image,
+        price: entry.item.price,
+        quantity: entry.quantity,
+        notes: entry.notes,
+      })),
+    );
   }
 
   protected finalizeOrder(): void {
@@ -129,7 +175,8 @@ export class Cardapio implements OnInit {
         image: cartItem.item.image,
         price: cartItem.item.price,
         quantity: cartItem.quantity,
-      }))
+        notes: cartItem.notes,
+      })),
     );
     void this.router.navigateByUrl('/finalizar-pedido');
   }
@@ -193,12 +240,16 @@ export class Cardapio implements OnInit {
     this.isLoading.set(true);
     this.loadError.set(null);
 
-    this.cardapioService
-      .listar({
-        categoriaId: category === 'todos' ? undefined : category,
-        pagina: 0,
-        tamanho: 100,
-      })
+    this.menuSubscription?.unsubscribe();
+    this.menuSubscription = this.cardapioService
+      .listarComRecuperacao(
+        {
+          categoriaId: category === 'todos' ? undefined : category,
+          pagina: 0,
+          tamanho: 100,
+        },
+        (attempt) => this.loadingAttempt.set(attempt),
+      )
       .subscribe({
         next: (response) => {
           if (requestId !== this.menuRequestSequence) return;
@@ -209,13 +260,11 @@ export class Cardapio implements OnInit {
           }
           this.isLoading.set(false);
         },
-        error: () => {
+        error: (error) => {
           if (requestId !== this.menuRequestSequence) return;
 
           this.menuItems.set([]);
-          this.loadError.set(
-            'Não foi possível carregar o cardápio. Verifique se a API está em execução e tente novamente.'
-          );
+          this.loadError.set(readFailureMessage(error));
           this.isLoading.set(false);
         },
       });

@@ -2,6 +2,7 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 import { OrderStateService } from '../order-state.service';
 
 type PaymentMethod = 'pix' | 'cartao' | 'dinheiro';
@@ -19,13 +20,15 @@ export class FinalizarPedido {
 
   protected readonly items = this.orderState.items;
   protected readonly total = computed(() =>
-    this.items().reduce((sum, item) => sum + item.price * item.quantity, 0)
+    this.items().reduce((sum, item) => sum + item.price * item.quantity, 0),
   );
 
+  private readonly user = inject(AuthService).usuario();
+
   protected readonly checkoutForm = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(3)]],
-    address: ['', [Validators.required, Validators.minLength(8)]],
-    phone: ['', [Validators.required, Validators.minLength(10)]],
+    fullName: [this.user?.nome ?? ''],
+    address: [this.user?.endereco ?? '', [Validators.required, Validators.minLength(8)]],
+    phone: [this.user?.telefone ?? ''],
     paymentMethod: ['pix' as PaymentMethod, [Validators.required]],
   });
 
@@ -45,26 +48,35 @@ export class FinalizarPedido {
   }
 
   /**
-   * Confirma o pedido e prepara para futura integração com Firebase.
-   * No futuro, aqui será feita a chamada para salvar o pedido no banco de dados Firebase.
+   * Confirma pela API Spring Boot; preço, identificador e status são definidos pelo servidor.
    */
+  protected submitting = false;
+  protected submitError: string | null = null;
+
   protected async confirmOrder() {
+    if (this.submitting) return;
     this.checkoutForm.markAllAsTouched();
     if (this.checkoutForm.invalid || !this.items().length) return;
 
     const { fullName, address, phone, paymentMethod } = this.checkoutForm.getRawValue();
-    if (!fullName || !address || !phone || !paymentMethod) return;
+    if (!address || !paymentMethod) return;
 
-    // Aqui será feita a integração com o Firebase futuramente
-    // Exemplo:
-
-    const confirmedOrder = await this.orderState.confirmOrder({
-      customerName: fullName,
-      address,
-      phone,
-      paymentMethod,
-    });
-    this.router.navigateByUrl(`/acompanhar-pedido/${confirmedOrder.code}`);
+    this.submitting = true;
+    this.submitError = null;
+    try {
+      const confirmedOrder = await this.orderState.confirmOrder({
+        customerName: fullName ?? '',
+        address,
+        phone: phone ?? '',
+        paymentMethod,
+      });
+      await this.router.navigateByUrl(`/acompanhar-pedido/${confirmedOrder.code}`);
+    } catch {
+      this.submitError =
+        'Não foi possível confirmar a resposta da API. Consulte seu histórico antes de repetir para evitar um pedido duplicado.';
+    } finally {
+      this.submitting = false;
+    }
   }
 
   protected trackByItem(index: number, item: { id: number }) {

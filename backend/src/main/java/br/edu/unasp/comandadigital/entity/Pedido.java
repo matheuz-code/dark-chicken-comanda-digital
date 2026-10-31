@@ -51,6 +51,12 @@ public class Pedido extends BaseEntity {
     @Column(name = "motivo_cancelamento", length = 500)
     private String motivoCancelamento;
 
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
+    @Column(name = "idempotency_request_hash", length = 64)
+    private String idempotencyRequestHash;
+
     protected Pedido() {
     }
 
@@ -58,16 +64,21 @@ public class Pedido extends BaseEntity {
             Usuario cliente,
             FormaPagamento formaPagamento,
             String enderecoEntrega,
-            String observacoes) {
+            String observacoes,
+            String idempotencyKey,
+            String idempotencyRequestHash) {
         Pedido pedido = new Pedido();
         pedido.cliente = cliente;
         pedido.canal = CanalPedido.SITE;
         pedido.status = StatusPedido.RECEBIDO;
-        pedido.statusPagamento = StatusPagamento.PAGO;
+        // O checkout é demonstrativo: nenhum valor foi processado neste momento.
+        pedido.statusPagamento = StatusPagamento.PENDENTE;
         pedido.formaPagamento = formaPagamento;
         pedido.valorTotal = BigDecimal.ZERO;
         pedido.enderecoEntrega = enderecoEntrega;
         pedido.observacoes = observacoes;
+        pedido.idempotencyKey = idempotencyKey;
+        pedido.idempotencyRequestHash = idempotencyRequestHash;
         return pedido;
     }
 
@@ -89,4 +100,6 @@ public class Pedido extends BaseEntity {
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
     public String getMotivoCancelamento() { return motivoCancelamento; }
     public void setMotivoCancelamento(String motivoCancelamento) { this.motivoCancelamento = motivoCancelamento; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public String getIdempotencyRequestHash() { return idempotencyRequestHash; }
 }
