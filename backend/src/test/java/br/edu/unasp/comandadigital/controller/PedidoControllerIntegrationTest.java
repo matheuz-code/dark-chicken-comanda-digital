@@ -46,6 +46,8 @@ class PedidoControllerIntegrationTest {
                         .content(pedidoJson("PIX", "{\"pratoId\":5,\"quantidade\":1}")))
                 .andExpect(status().isUnauthorized());
 
+        mockMvc.perform(get("/api/pedidos/1")).andExpect(status().isUnauthorized());
+
         mockMvc.perform(get("/api/pedidos/meus"))
                 .andExpect(status().isUnauthorized());
 
@@ -248,6 +250,27 @@ class PedidoControllerIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenB))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensagem", containsString("cliente autenticado")));
+    }
+
+    @Test
+    void detalheDoPedidoPreservaContratoESomenteDonoPodeLer() throws Exception {
+        String owner = registrarCliente("owner.detalhe@example.invalid");
+        String other = registrarCliente("other.detalhe@example.invalid");
+        long id = criarPedido(owner, "PIX", "{\"pratoId\":5,\"quantidade\":2}");
+        mockMvc.perform(get("/api/pedidos/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.status").value("RECEBIDO"))
+                .andExpect(jsonPath("$.formaPagamento").value("PIX"))
+                .andExpect(jsonPath("$.valorTotal").value(14.0))
+                .andExpect(jsonPath("$.criadoEm").isString())
+                .andExpect(jsonPath("$.itens[0].pratoId").value(5))
+                .andExpect(jsonPath("$.itens[0].quantidade").value(2))
+                .andExpect(jsonPath("$.itens[0].precoUnitario").value(7.0));
+        mockMvc.perform(get("/api/pedidos/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + other))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/pedidos/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + loginAdmin()))
+                .andExpect(status().isForbidden());
     }
 
     private String registrarCliente(String email) throws Exception {

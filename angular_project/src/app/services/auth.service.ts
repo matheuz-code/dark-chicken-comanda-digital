@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, Subject, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export type PerfilUsuario = 'CLIENTE' | 'ADMIN' | 'GERENTE' | 'COZINHEIRO';
@@ -39,6 +39,8 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly endpoint = `${environment.apiUrl}/auth`;
   private readonly sessionKey = 'comanda-digital.auth';
+  private readonly sessionEvents = new Subject<void>();
+  readonly sessaoAlterada = this.sessionEvents.asObservable();
 
   login(email: string, senha: string): Observable<AutenticacaoResponse> {
     return this.http
@@ -71,7 +73,9 @@ export class AuthService {
 
   logout(): void {
     if (typeof localStorage !== 'undefined') {
+      const hadSession = localStorage.getItem(this.sessionKey) !== null;
       localStorage.removeItem(this.sessionKey);
+      if (hadSession) this.sessionEvents.next();
     }
   }
 
@@ -82,6 +86,7 @@ export class AuthService {
         expiraEmEpochMs: Date.now() + response.expiraEmSegundos * 1000,
       };
       localStorage.setItem(this.sessionKey, JSON.stringify(sessao));
+      this.sessionEvents.next();
     }
   }
 

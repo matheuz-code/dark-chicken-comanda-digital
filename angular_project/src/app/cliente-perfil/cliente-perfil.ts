@@ -2,6 +2,7 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { ClientProfileStateService } from '../client-profile-state.service';
+import { OrderStateService } from '../order-state.service';
 
 @Component({
   selector: 'app-cliente-perfil',
@@ -10,11 +11,17 @@ import { ClientProfileStateService } from '../client-profile-state.service';
   styleUrl: './cliente-perfil.css',
 })
 export class ClientePerfil {
+  protected readonly orderState = inject(OrderStateService);
+  constructor() {
+    void this.orderState.refresh().catch(() => {});
+  }
   private readonly router = inject(Router);
   protected readonly profileState = inject(ClientProfileStateService);
 
   protected readonly expandedOrderIds = signal<string[]>([]);
-  protected readonly hasActiveOrderAlert = computed(() => this.profileState.activeOrdersCount() > 0);
+  protected readonly hasActiveOrderAlert = computed(
+    () => this.profileState.activeOrdersCount() > 0,
+  );
 
   protected toggleExpand(orderId: string) {
     const expanded = this.expandedOrderIds();

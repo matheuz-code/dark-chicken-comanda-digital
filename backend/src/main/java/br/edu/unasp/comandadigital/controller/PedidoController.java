@@ -59,6 +59,12 @@ public class PedidoController {
         return pedidoService.listarMeus(authentication.getName(), pageable);
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Consultar meu pedido", description = "Detalhes somente do cliente proprietário")
+    public PedidoCriadoResponse detalhar(Authentication authentication, @PathVariable @Positive Long id) {
+        return pedidoService.detalharMeu(authentication.getName(), id);
+    }
+
     @GetMapping("/{id}/status")
     @Operation(summary = "Consultar status do pedido", description = "Retorna o status atual e a timeline")
     public PedidoStatusResponse consultarStatus(

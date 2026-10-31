@@ -3,10 +3,7 @@ import localePt from '@angular/common/locales/pt';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import {
-  PaginaResponse,
-  PratoCardapioResponse,
-} from '../models/cardapio.model';
+import { PaginaResponse, PratoCardapioResponse } from '../models/cardapio.model';
 import { OrderStateService } from '../order-state.service';
 import { CardapioService, ListarCardapioParams } from '../services/cardapio.service';
 import { Cardapio } from './cardapio';
@@ -18,6 +15,7 @@ describe('Cardapio', () => {
   let cardapioService: {
     listar: ReturnType<typeof vi.fn>;
     obterPorId: ReturnType<typeof vi.fn>;
+    listarComRecuperacao: ReturnType<typeof vi.fn>;
   };
   let orderState: { setItems: ReturnType<typeof vi.fn> };
 
@@ -25,9 +23,24 @@ describe('Cardapio', () => {
     const dishes = [burger(), drink()];
     cardapioService = {
       listar: vi.fn((params: ListarCardapioParams = {}) =>
-        of(menuPage(params.categoriaId ? dishes.filter((dish) => dish.categoria.id === params.categoriaId) : dishes))
+        of(
+          menuPage(
+            params.categoriaId
+              ? dishes.filter((dish) => dish.categoria.id === params.categoriaId)
+              : dishes,
+          ),
+        ),
       ),
       obterPorId: vi.fn(() => of({ ...burger(), tempoPreparoMin: 20 })),
+      listarComRecuperacao: vi.fn((params: ListarCardapioParams = {}) =>
+        of(
+          menuPage(
+            params.categoriaId
+              ? dishes.filter((dish) => dish.categoria.id === params.categoriaId)
+              : dishes,
+          ),
+        ),
+      ),
     };
     orderState = { setItems: vi.fn() };
 
@@ -47,11 +60,14 @@ describe('Cardapio', () => {
   it('deve renderizar pratos e categorias retornados pela API', () => {
     const content = fixture.nativeElement as HTMLElement;
 
-    expect(cardapioService.listar).toHaveBeenCalledWith({
-      categoriaId: undefined,
-      pagina: 0,
-      tamanho: 100,
-    });
+    expect(cardapioService.listarComRecuperacao).toHaveBeenCalledWith(
+      {
+        categoriaId: undefined,
+        pagina: 0,
+        tamanho: 100,
+      },
+      expect.any(Function),
+    );
     expect(content.textContent).toContain('X-Burger');
     expect(content.textContent).toContain('Refrigerante');
     expect(findButton('Lanches')).toBeTruthy();
@@ -66,11 +82,14 @@ describe('Cardapio', () => {
     findButton('Bebidas').click();
     fixture.detectChanges();
 
-    expect(cardapioService.listar).toHaveBeenLastCalledWith({
-      categoriaId: 2,
-      pagina: 0,
-      tamanho: 100,
-    });
+    expect(cardapioService.listarComRecuperacao).toHaveBeenLastCalledWith(
+      {
+        categoriaId: 2,
+        pagina: 0,
+        tamanho: 100,
+      },
+      expect.any(Function),
+    );
     const content = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(content).toContain('Refrigerante');
     expect(content).not.toContain('Hambúrguer artesanal');
@@ -104,7 +123,7 @@ describe('Cardapio', () => {
 
   function findButton(label: string): HTMLButtonElement {
     const buttons = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
     ) as HTMLButtonElement[];
     const button = buttons.find((candidate) => candidate.textContent?.trim() === label);
     if (!button) throw new Error(`Botão não encontrado: ${label}`);

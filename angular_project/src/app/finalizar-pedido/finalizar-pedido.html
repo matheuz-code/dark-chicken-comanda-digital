@@ -29,7 +29,7 @@
       <form class="form" [formGroup]="checkoutForm" (ngSubmit)="confirmOrder()">
         <label class="field">
           <span>Nome Completo</span>
-          <input type="text" formControlName="fullName" placeholder="Seu nome" />
+          <input type="text" formControlName="fullName" placeholder="Nome do cadastro" readonly />
         </label>
 
         <label class="field">
@@ -41,6 +41,7 @@
           <span>Telefone</span>
           <input
             type="tel"
+            readonly
             formControlName="phone"
             placeholder="11987654321"
             inputmode="numeric"
@@ -50,6 +51,11 @@
             (input)="onPhoneInput($event)"
           />
         </label>
+
+        <p>
+          Nome e telefone são os dados do seu cadastro. O endereço abaixo será enviado com este
+          pedido.
+        </p>
 
         <div class="payment">
           <p class="payment__label">Forma de Pagamento</p>
@@ -86,8 +92,10 @@
           </div>
         </div>
 
-        <button class="confirm" type="submit">
-          Pagar - {{ total() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+        <p *ngIf="submitError" role="alert">{{ submitError }}</p>
+        <p>Pagamento simulado. O pedido só será confirmado após resposta da API.</p>
+        <button class="confirm" type="submit" [disabled]="submitting">
+          Confirmar pedido - {{ total() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
         </button>
       </form>
     </section>

@@ -1,3 +1,4 @@
+<p *ngIf="orderState.loadError()" role="alert">{{ orderState.loadError() }}</p>
 <main class="profile-page">
   <section class="profile-header-card">
     <div class="avatar">👤</div>
@@ -19,7 +20,9 @@
     </article>
     <article class="metric-card">
       <p>Total Gasto</p>
-      <strong>{{ profileState.totalSpent() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+      <strong>{{
+        profileState.totalSpent() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+      }}</strong>
     </article>
     <article class="metric-card">
       <p>Ticket Medio</p>
@@ -30,7 +33,9 @@
     <article class="metric-card">
       <p>Ultimo Pedido</p>
       <strong>
-        {{ profileState.lastOrderDate() ? (profileState.lastOrderDate() | date: 'dd/MM/yyyy') : '-' }}
+        {{
+          profileState.lastOrderDate() ? (profileState.lastOrderDate() | date: 'dd/MM/yyyy') : '-'
+        }}
       </strong>
     </article>
   </section>
@@ -96,7 +101,9 @@
       <ul class="items" *ngIf="isExpanded(order.id)">
         <li *ngFor="let item of order.items">
           <span>{{ item.quantity }}x {{ item.name }}</span>
-          <strong>{{ item.price * item.quantity | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <strong>{{
+            item.price * item.quantity | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+          }}</strong>
         </li>
       </ul>
     </article>

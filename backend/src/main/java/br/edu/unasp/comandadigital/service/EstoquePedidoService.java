@@ -42,7 +42,7 @@ public class EstoquePedidoService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void baixarAoIniciarPreparo(Pedido pedido, Usuario usuario) {
+    public void baixarAoConfirmar(Pedido pedido, Usuario usuario) {
         if (movimentacaoRepository.existsByPedidoIdAndTipoAndMotivo(
                 pedido.getId(),
                 TipoMovimentacaoEstoque.SAIDA,

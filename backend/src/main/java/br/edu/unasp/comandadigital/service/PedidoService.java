@@ -139,6 +139,13 @@ public class PedidoService {
                 pedido.getUpdatedAt())));
     }
 
+    public PedidoCriadoResponse detalharMeu(String emailCliente, Long pedidoId) {
+        Usuario cliente = carregarCliente(emailCliente);
+        Pedido pedido = pedidoRepository.findByIdAndClienteId(pedidoId, cliente.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pedido não encontrado para o cliente autenticado"));
+        return toCriadoResponse(pedido, pedidoItemRepository.findByPedidoId(pedido.getId()));
+    }
+
     public PedidoStatusResponse consultarStatus(String emailCliente, Long pedidoId) {
         Usuario cliente = carregarCliente(emailCliente);
         Pedido pedido = pedidoRepository.findByIdAndClienteId(pedidoId, cliente.getId())

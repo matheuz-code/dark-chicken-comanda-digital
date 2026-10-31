@@ -66,7 +66,7 @@ public class AdminPedidoController {
     @PatchMapping("/{id}/status")
     @Operation(
             summary = "Mudar status",
-            description = "Aceita somente a próxima etapa válida do fluxo e baixa o estoque ao iniciar o preparo")
+            description = "Aceita somente a próxima etapa válida do fluxo e baixa o estoque ao confirmar o pedido")
     public PedidoAdminDetalheResponse atualizarStatus(
             Authentication authentication,
             @PathVariable @Positive Long id,

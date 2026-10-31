@@ -132,8 +132,10 @@ public class AdminPedidoService {
         validarPermissaoTransicao(usuario, statusAnterior, novoStatus);
         validarSequenciaStatus(statusAnterior, novoStatus);
 
-        if (novoStatus == StatusPedido.EM_PREPARO) {
-            estoquePedidoService.baixarAoIniciarPreparo(pedido, usuario);
+        // CONFIRMADO atende ao SRS. EM_PREPARO mantém compatibilidade com pedidos
+        // confirmados antes desta correção; a operação de estoque é idempotente.
+        if (novoStatus == StatusPedido.CONFIRMADO || novoStatus == StatusPedido.EM_PREPARO) {
+            estoquePedidoService.baixarAoConfirmar(pedido, usuario);
         }
         pedido.setStatus(novoStatus);
         pedidoRepository.saveAndFlush(pedido);

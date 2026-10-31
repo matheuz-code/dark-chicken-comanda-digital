@@ -2,7 +2,13 @@
 
 Projeto acadêmico fullstack para uma dark kitchen, com Angular 21, Java 17 e Spring Boot. O trabalho aplica modelagem de requisitos, API REST, autenticação JWT, autorização por perfis, persistência relacional e migrações versionadas.
 
-**Estado atual:** demonstração parcial funcional. Cardápio e autenticação de clientes estão integrados à API. O fluxo visual de pedidos ainda usa armazenamento local e não deve ser apresentado como uma operação de delivery completa.
+**Estado atual da publicação:** demonstração parcial funcional. Cardápio e autenticação de clientes estão integrados à API. O fluxo visual de pedidos ainda usa armazenamento local e não deve ser apresentado como uma operação de delivery completa.
+
+## Sprint 1 em revisão — ainda não implantado
+
+Esta branch conecta checkout, histórico, acompanhamento e cozinha aos endpoints Spring existentes, preservando as telas e o schema. Acrescenta recuperação limitada de leituras, detalhe restrito ao proprietário, baixa de estoque em CONFIRMADO e testes. A publicação nos links abaixo continua na versão anterior até aprovação e deploy separado.
+
+Consulte [contratos, validação, ambiente MySQL isolado e limitações](docs/SPRINT1.md). Testes unitários aprovados não equivalem a uma homologação ponta a ponta; a integração completa com MySQL permanece pendente nesta entrega local. Nenhum dado da Aiven foi usado pelos testes.
 
 ## Demonstração
 
@@ -13,9 +19,9 @@ Projeto acadêmico fullstack para uma dark kitchen, com Angular 21, Java 17 e Sp
 
 O backend utiliza o plano gratuito do Render e pode levar alguns minutos para iniciar após inatividade. A interface contém nomes legados, como BomRango e Dark Kitchen App; todos pertencem a esta demonstração. Use somente dados fictícios nos testes. Não há credenciais administrativas públicas.
 
-## Funcionalidades e nível de integração
+## Funcionalidades da publicação vigente (antes do Sprint 1)
 
-| Área | Implementação atual |
+| Área | Versão publicada |
 | --- | --- |
 | Cardápio | Consulta à API, filtros por categoria, fotos, preços e detalhes dos pratos. |
 | Cadastro e login | Cadastro público exclusivo de clientes, validação dos dados, tratamento de e-mail duplicado e sessão JWT. |
@@ -106,8 +112,8 @@ npm audit --omit=dev --audit-level=moderate
 ```bash
 cd backend
 mvn -Dtest=DtoValidationTest,GlobalExceptionHandlerTest test
-# Com MySQL de testes isolado, credenciais próprias e JWT_SECRET configurados:
-mvn test
+# Com o MySQL descartável do compose.test.yml e a proteção de schema de teste:
+mvn verify
 ```
 
 **Os testes de integração fazem alterações no banco indicado pela configuração.** Execute-os somente em uma base descartável de testes. Nunca aponte a suíte para a Aiven de produção. A configuração em `src/test/resources` habilita dados de demonstração exclusivamente nesse contexto isolado.
